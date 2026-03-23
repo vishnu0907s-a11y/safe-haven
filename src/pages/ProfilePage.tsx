@@ -27,7 +27,7 @@ export default function ProfilePage() {
         <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
           <UserCircle className="w-12 h-12" />
         </div>
-        <h2 className="text-lg font-bold">{user.name}</h2>
+        <h2 className="text-lg font-bold">{user.full_name}</h2>
         <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
         <div className={cn(
           "text-[10px] font-semibold px-2.5 py-1 rounded-full mt-2",
