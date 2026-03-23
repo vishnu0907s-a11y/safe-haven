@@ -39,7 +39,7 @@ export default function AdminDashboard() {
       {/* Admin profile */}
       <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-          {user.name.charAt(0)}
+          {user.full_name.charAt(0)}
         </div>
         <div>
           <p className="font-semibold">{user.name}</p>
