@@ -28,11 +28,11 @@ export default function DashboardPage() {
         </div>
         <div className={cn(
           "text-[10px] font-semibold px-2.5 py-1 rounded-full",
-          user.verified
+          user.verification_status === "verified"
             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
         )}>
-          {user.verified ? "Verified" : "Pending"}
+          {user.verification_status === "verified" ? "Verified" : "Pending"}
         </div>
       </div>
 

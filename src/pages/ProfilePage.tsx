@@ -31,11 +31,11 @@ export default function ProfilePage() {
         <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
         <div className={cn(
           "text-[10px] font-semibold px-2.5 py-1 rounded-full mt-2",
-          user.verified
+          user.verification_status === "verified"
             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
         )}>
-          {user.verified ? "Verified" : "Pending Verification"}
+          {user.verification_status === "verified" ? "Verified" : "Pending Verification"}
         </div>
       </div>
 
