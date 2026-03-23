@@ -23,7 +23,7 @@ export default function DashboardPage() {
           {user.full_name.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{user.name}</p>
+          <p className="font-semibold truncate">{user.full_name}</p>
           <p className="text-xs text-muted-foreground capitalize">{user.role} • {user.city}</p>
         </div>
         <div className={cn(
