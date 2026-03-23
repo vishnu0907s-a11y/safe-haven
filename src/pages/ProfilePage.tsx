@@ -16,7 +16,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { icon: Bell, label: "Emergency Contacts", desc: "Manage your emergency contacts" },
-    { icon: Shield, label: "Verification Status", desc: user.verified ? "Documents verified" : "Verification pending" },
+    { icon: Shield, label: "Verification Status", desc: user.verification_status === "verified" ? "Documents verified" : "Verification pending" },
     { icon: HelpCircle, label: "Support & Concierge", desc: "Get help and support" },
   ];
 
