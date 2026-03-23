@@ -42,7 +42,7 @@ export default function AdminDashboard() {
           {user.full_name.charAt(0)}
         </div>
         <div>
-          <p className="font-semibold">{user.name}</p>
+          <p className="font-semibold">{user.full_name}</p>
           <p className="text-xs text-muted-foreground">Administrator</p>
         </div>
       </div>
