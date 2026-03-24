@@ -1,0 +1,174 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
+
+interface EmergencyAlert {
+  id: string;
+  user_id: string;
+  latitude: number;
+  longitude: number;
+  status: string;
+  accepted_by: string[] | null;
+  created_at: string;
+  profiles?: { full_name: string; phone: string | null };
+}
+
+export function useSendEmergencyAlert() {
+  const { supabaseUser } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [activeAlert, setActiveAlert] = useState<EmergencyAlert | null>(null);
+
+  // Check for existing active alert on mount
+  useEffect(() => {
+    if (!supabaseUser) return;
+    supabase
+      .from("emergency_alerts")
+      .select("*")
+      .eq("user_id", supabaseUser.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) setActiveAlert(data[0]);
+      });
+  }, [supabaseUser]);
+
+  const sendAlert = useCallback(async () => {
+    if (!supabaseUser) return;
+    setSending(true);
+    try {
+      // Get GPS location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        });
+      });
+
+      const { data, error } = await supabase
+        .from("emergency_alerts")
+        .insert({
+          user_id: supabaseUser.id,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          status: "active",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setActiveAlert(data);
+      toast.success("Emergency alert sent! Help is on the way.");
+    } catch (err: any) {
+      if (err?.code === 1) {
+        toast.error("Location access denied. Please enable GPS.");
+      } else {
+        toast.error(err?.message || "Failed to send alert");
+      }
+    } finally {
+      setSending(false);
+    }
+  }, [supabaseUser]);
+
+  const cancelAlert = useCallback(async () => {
+    if (!activeAlert) return;
+    await supabase
+      .from("emergency_alerts")
+      .update({ status: "resolved" })
+      .eq("id", activeAlert.id);
+    setActiveAlert(null);
+    toast.info("Alert cancelled.");
+  }, [activeAlert]);
+
+  return { sendAlert, cancelAlert, sending, activeAlert };
+}
+
+export function useRealtimeAlerts() {
+  const { user } = useAuth();
+  const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const isResponder = user && ["driver", "police", "protector"].includes(user.role);
+
+  // Fetch active alerts
+  const fetchAlerts = useCallback(async () => {
+    const { data } = await supabase
+      .from("emergency_alerts")
+      .select("*")
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+    if (data) setAlerts(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isResponder) {
+      setLoading(false);
+      return;
+    }
+    fetchAlerts();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel("emergency-alerts-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "emergency_alerts" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setAlerts((prev) => [payload.new as EmergencyAlert, ...prev]);
+            toast.warning("🚨 New emergency alert!", { duration: 8000 });
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new as EmergencyAlert;
+            if (updated.status === "resolved") {
+              setAlerts((prev) => prev.filter((a) => a.id !== updated.id));
+            } else {
+              setAlerts((prev) =>
+                prev.map((a) => (a.id === updated.id ? updated : a))
+              );
+            }
+          } else if (payload.eventType === "DELETE") {
+            setAlerts((prev) => prev.filter((a) => a.id !== (payload.old as any).id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isResponder, fetchAlerts]);
+
+  const acceptAlert = useCallback(
+    async (alertId: string) => {
+      if (!user) return;
+      const alert = alerts.find((a) => a.id === alertId);
+      if (!alert) return;
+
+      const currentAccepted = alert.accepted_by || [];
+      if (currentAccepted.length >= 10) {
+        toast.error("Maximum responders reached.");
+        return;
+      }
+      if (currentAccepted.includes(user.user_id)) {
+        toast.info("You already accepted this alert.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("emergency_alerts")
+        .update({ accepted_by: [...currentAccepted, user.user_id] })
+        .eq("id", alertId);
+
+      if (error) {
+        toast.error("Failed to accept alert.");
+      } else {
+        toast.success("Alert accepted! Navigate to the victim.");
+      }
+    },
+    [user, alerts]
+  );
+
+  return { alerts, loading, acceptAlert };
+}
