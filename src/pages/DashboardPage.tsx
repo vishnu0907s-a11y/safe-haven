@@ -1,7 +1,102 @@
-import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, ChevronRight } from "lucide-react";
+import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Wifi, WifiOff, Gauge } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
+import { useAttendance } from "@/hooks/use-attendance";
+import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
 import { cn } from "@/lib/utils";
+
+function TelemetryCard() {
+  const telemetry = useLiveTelemetry();
+
+  const signalColor =
+    telemetry.signalStatus === "connected"
+      ? "text-emerald-400"
+      : telemetry.signalStatus === "weak"
+      ? "text-amber-400"
+      : "text-destructive";
+
+  const signalLabel =
+    telemetry.signalStatus === "connected"
+      ? "SIGNAL ACTIVE"
+      : telemetry.signalStatus === "weak"
+      ? "WEAK SIGNAL"
+      : "SIGNAL LOST";
+
+  return (
+    <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
+      <div className="flex items-center justify-between mb-3">
+        <p className="label-caps text-emerald-400">Live Telemetry</p>
+        <p className="label-caps text-muted-foreground">Ground Speed</p>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={cn("w-2.5 h-2.5 rounded-full", telemetry.signalStatus === "connected" ? "bg-emerald-400" : telemetry.signalStatus === "weak" ? "bg-amber-400 animate-pulse" : "bg-destructive animate-pulse")} />
+          <span className={cn("text-sm font-bold", signalColor)}>{signalLabel}</span>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-black text-primary">{telemetry.speed}</span>
+          <span className="text-xs font-bold text-muted-foreground">KM/H</span>
+        </div>
+      </div>
+
+      <div className="mt-3 glass-card rounded-xl p-3 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+          <Gauge className="w-5 h-5 text-emerald-400" />
+        </div>
+        <div>
+          <p className="label-caps text-emerald-400/70">Efficiency Status</p>
+          <p className="text-sm font-bold text-emerald-400">
+            {telemetry.speed > 0 ? "Route Active" : "Optimal Route Flow Predicted"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceCard() {
+  const { activeShift, checkIn, checkOut, isEligible } = useAttendance();
+
+  if (!isEligible) return null;
+
+  return (
+    <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+      <div className="flex items-center gap-2 mb-3">
+        <Clock className="w-4 h-4 text-primary" />
+        <p className="label-caps">Attendance</p>
+      </div>
+
+      {activeShift ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-emerald-400">On Duty</p>
+              <p className="text-[10px] text-muted-foreground">
+                Since {new Date(activeShift.checked_in_at).toLocaleTimeString()}
+              </p>
+            </div>
+            <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+          <button
+            onClick={checkOut}
+            className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-bold border border-destructive/20 hover:bg-destructive/20 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Check Out
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={checkIn}
+          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <LogIn className="w-4 h-4" />
+          Check In — Start Duty
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -38,6 +133,12 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Telemetry for responders */}
+      {isResponder && <TelemetryCard />}
+
+      {/* Attendance for non-women */}
+      <AttendanceCard />
 
       {/* Women user: Emergency button */}
       {user.role === "women" && (
