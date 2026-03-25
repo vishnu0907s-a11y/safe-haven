@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          checked_in_at: string
+          checked_out_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          checked_out_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          checked_out_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       emergency_alerts: {
         Row: {
           accepted_by: string[] | null
