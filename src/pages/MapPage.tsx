@@ -6,7 +6,6 @@ import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
-// Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
@@ -24,7 +23,7 @@ const victimIcon = L.divIcon({
 });
 
 const myLocationIcon = L.divIcon({
-  html: `<div style="background:#3b82f6;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(59,130,246,0.2),0 2px 8px rgba(0,0,0,0.3);"></div>`,
+  html: `<div style="background:#eab308;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 6px rgba(234,179,8,0.2),0 2px 8px rgba(0,0,0,0.3);"></div>`,
   className: "",
   iconSize: [20, 20],
   iconAnchor: [10, 10],
@@ -39,7 +38,6 @@ export default function MapPage() {
   const alertMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const [myPos, setMyPos] = useState<[number, number] | null>(null);
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -49,8 +47,9 @@ export default function MapPage() {
       zoomControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // Dark map tiles
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     }).addTo(map);
 
     mapRef.current = map;
@@ -61,7 +60,6 @@ export default function MapPage() {
     };
   }, []);
 
-  // Watch GPS position
   useEffect(() => {
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
@@ -72,7 +70,6 @@ export default function MapPage() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Update my location marker
   useEffect(() => {
     if (!mapRef.current || !myPos) return;
 
@@ -81,18 +78,16 @@ export default function MapPage() {
     } else {
       myMarkerRef.current = L.marker(myPos, { icon: myLocationIcon })
         .addTo(mapRef.current)
-        .bindPopup("<span style='font-size:12px;font-weight:500'>You are here</span>");
+        .bindPopup("<span style='font-size:12px;font-weight:500;color:#eab308'>You are here</span>");
       mapRef.current.flyTo(myPos, 14, { duration: 1 });
     }
   }, [myPos]);
 
-  // Update alert markers
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
     const currentIds = new Set(alerts.map((a) => a.id));
 
-    // Remove stale markers
     alertMarkersRef.current.forEach((marker, id) => {
       if (!currentIds.has(id)) {
         map.removeLayer(marker);
@@ -100,7 +95,6 @@ export default function MapPage() {
       }
     });
 
-    // Add/update alert markers
     alerts.forEach((alert) => {
       const pos: [number, number] = [alert.latitude, alert.longitude];
       if (alertMarkersRef.current.has(alert.id)) {
@@ -126,21 +120,19 @@ export default function MapPage() {
 
   return (
     <div className="px-4 space-y-3">
-      {/* Map */}
-      <div className="relative h-[50vh] rounded-2xl overflow-hidden border shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="relative h-[50vh] rounded-2xl overflow-hidden border border-border/40 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div ref={mapContainerRef} className="h-full w-full" />
         <button
           onClick={handleLocate}
-          className="absolute bottom-4 right-4 z-[1000] w-10 h-10 rounded-full bg-card border shadow-md flex items-center justify-center hover:shadow-lg transition-shadow active:scale-95"
+          className="absolute bottom-4 right-4 z-[1000] w-10 h-10 rounded-full glass-card flex items-center justify-center hover:gold-glow transition-shadow active:scale-95"
         >
           <Locate className="w-5 h-5 text-primary" />
         </button>
       </div>
 
-      {/* Alert cards below map */}
       {isResponder && alerts.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-          <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
+          <h2 className="label-caps mb-2 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-destructive" />
             Active Emergencies
           </h2>
@@ -149,22 +141,22 @@ export default function MapPage() {
               const accepted = alert.accepted_by || [];
               const hasAccepted = user ? accepted.includes(user.user_id) : false;
               return (
-                <div key={alert.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-destructive/20">
+                <div key={alert.id} className="glass-card flex items-center gap-3 p-3 rounded-2xl border-destructive/20">
                   <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center text-destructive text-sm font-bold">
                     !
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">Emergency Alert</p>
+                    <p className="text-sm font-bold truncate">Emergency Alert</p>
                     <p className="text-[10px] text-muted-foreground">
                       {alert.latitude.toFixed(3)}, {alert.longitude.toFixed(3)} • {accepted.length} responding
                     </p>
                   </div>
                   {hasAccepted ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   ) : (
                     <button
                       onClick={() => acceptAlert(alert.id)}
-                      className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-95"
+                      className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-95"
                     >
                       <Navigation className="w-3.5 h-3.5" />
                     </button>
@@ -177,8 +169,8 @@ export default function MapPage() {
       )}
 
       {isResponder && alerts.length === 0 && (
-        <div className="p-5 rounded-xl bg-card border text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-          <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+        <div className="glass-card p-5 rounded-2xl text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+          <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No active emergencies nearby</p>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Mail, Phone, MapPin, LogOut, ChevronRight, HelpCircle, Shield, UserCircle, Bell } from "lucide-react";
+import { Mail, Phone, MapPin, LogOut, ChevronRight, HelpCircle, Shield, UserCircle, Bell, Bus, Activity } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -22,64 +22,92 @@ export default function ProfilePage() {
 
   return (
     <div className="px-4 space-y-4">
-      {/* Profile card */}
-      <div className="flex flex-col items-center p-6 rounded-2xl bg-card border shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
-          <UserCircle className="w-12 h-12" />
-        </div>
-        <h2 className="text-lg font-bold">{user.full_name}</h2>
-        <p className="text-sm text-muted-foreground capitalize">{user.role}</p>
-        <div className={cn(
-          "text-[10px] font-semibold px-2.5 py-1 rounded-full mt-2",
-          user.verification_status === "verified"
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-        )}>
-          {user.verification_status === "verified" ? "Verified" : "Pending Verification"}
-        </div>
-      </div>
-
       {/* Info row */}
-      <div className="grid grid-cols-3 gap-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-        {[
-          { icon: Mail, value: user.email, label: "Email" },
-          { icon: Phone, value: user.phone, label: "Phone" },
-          { icon: MapPin, value: user.city, label: "City" },
-        ].map((item) => (
-          <div key={item.label} className="flex flex-col items-center p-3 rounded-xl bg-card border text-center">
-            <item.icon className="w-4 h-4 text-muted-foreground mb-1" />
-            <p className="text-[10px] text-muted-foreground">{item.label}</p>
-            <p className="text-[11px] font-medium truncate w-full">{item.value}</p>
+      <div className="glass-card rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="label-caps mb-1">Email Registry</p>
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium truncate">{user.email}</p>
+            </div>
           </div>
-        ))}
+          <div>
+            <p className="label-caps mb-1">Phone Line</p>
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium">{user.phone || "Not set"}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Menu items */}
-      <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+      {/* Location info */}
+      <div className="glass-card rounded-2xl p-5 space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+        <div>
+          <p className="label-caps mb-2">Fleet Association</p>
+          <div className="flex items-center justify-between">
+            <p className="text-base font-bold">{user.city || "Not assigned"}</p>
+            <Bus className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </div>
+        <div className="h-px bg-border" />
+        <div>
+          <p className="label-caps mb-2">Role Assignment</p>
+          <div className="flex items-center justify-between">
+            <p className="text-base font-bold capitalize">{user.role}</p>
+            <MapPin className="w-5 h-5 text-muted-foreground" />
+          </div>
+        </div>
+      </div>
+
+      {/* Diagnostics & settings */}
+      <div className="glass-card rounded-2xl p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+        <p className="label-caps mb-1">Diagnostics & Settings</p>
         {menuItems.map((item) => (
           <button
             key={item.label}
-            className="w-full flex items-center gap-3 p-4 rounded-xl bg-card border hover:shadow-sm transition-all active:scale-[0.98]"
+            className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border/40 hover:border-primary/30 transition-all active:scale-[0.98]"
           >
-            <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
               <item.icon className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium">{item.label}</p>
+              <p className="text-sm font-semibold">{item.label}</p>
               <p className="text-[10px] text-muted-foreground">{item.desc}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         ))}
+
+        {/* Status badges */}
+        <div className="flex items-center gap-2 pt-2">
+          <div className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border",
+            user.verification_status === "verified"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+          )}>
+            <span className={cn(
+              "w-1.5 h-1.5 rounded-full",
+              user.verification_status === "verified" ? "bg-emerald-400" : "bg-amber-400"
+            )} />
+            {user.verification_status === "verified" ? "VERIFIED" : "PENDING"}
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-blue-500/30 bg-blue-500/10 text-blue-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            GPS RELAY
+          </div>
+        </div>
       </div>
 
       {/* Sign out */}
       <button
         onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-destructive/20 text-destructive hover:bg-destructive/5 transition-colors active:scale-[0.98] animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300"
+        className="w-full flex items-center justify-center gap-2 p-3.5 rounded-2xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors active:scale-[0.98] animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300 font-bold text-sm"
       >
         <LogOut className="w-4 h-4" />
-        <span className="text-sm font-medium">Sign Out</span>
+        SIGN OUT
       </button>
     </div>
   );
