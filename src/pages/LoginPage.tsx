@@ -11,11 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const roles: { id: UserRole; label: string; icon: React.ElementType; color: string }[] = [
-  { id: "women", label: "Women User", icon: User, color: "bg-pink-500/10 text-pink-600 dark:text-pink-400" },
-  { id: "driver", label: "Driver", icon: Car, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  { id: "police", label: "Police", icon: ShieldCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-  { id: "protector", label: "Public Protector", icon: Users, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  { id: "admin", label: "Admin", icon: Lock, color: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
+  { id: "women", label: "Women User", icon: User, color: "bg-pink-500/10 text-pink-400 border border-pink-500/20" },
+  { id: "driver", label: "Driver", icon: Car, color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
+  { id: "police", label: "Police", icon: ShieldCheck, color: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
+  { id: "protector", label: "Public Protector", icon: Users, color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+  { id: "admin", label: "Admin", icon: Lock, color: "bg-slate-500/10 text-slate-400 border border-slate-500/20" },
 ];
 
 export default function LoginPage() {
@@ -27,7 +27,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -81,7 +80,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Upload documents if provided
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       try {
@@ -111,14 +109,14 @@ export default function LoginPage() {
 
     return (
       <>
-        <Input placeholder="Full Name *" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <Input placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input placeholder="Full Name *" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-secondary border-border/60" />
+        <Input placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border/60" />
 
         {selectedRole === "women" && (
           <>
-            <Input placeholder="City / District" value={city} onChange={(e) => setCity(e.target.value)} />
-            <Input type="date" placeholder="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} />
-            <label className="flex items-center gap-2 p-3 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors">
+            <Input placeholder="City / District" value={city} onChange={(e) => setCity(e.target.value)} className="bg-secondary border-border/60" />
+            <Input type="date" placeholder="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} className="bg-secondary border-border/60" />
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
@@ -128,13 +126,13 @@ export default function LoginPage() {
 
         {selectedRole === "driver" && (
           <>
-            <Input placeholder="Vehicle Number" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} />
-            <label className="flex items-center gap-2 p-3 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors">
+            <Input placeholder="Vehicle Number" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} className="bg-secondary border-border/60" />
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
-            <label className="flex items-center gap-2 p-3 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors">
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{licenseFile?.name || "Driving License (upload)"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
@@ -144,15 +142,15 @@ export default function LoginPage() {
 
         {selectedRole === "police" && (
           <>
-            <Input placeholder="Station Name" value={stationName} onChange={(e) => setStationName(e.target.value)} />
-            <Input placeholder="Police ID" value={policeId} onChange={(e) => setPoliceId(e.target.value)} />
+            <Input placeholder="Station Name" value={stationName} onChange={(e) => setStationName(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder="Police ID" value={policeId} onChange={(e) => setPoliceId(e.target.value)} className="bg-secondary border-border/60" />
           </>
         )}
 
         {selectedRole === "protector" && (
           <>
-            <Input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
-            <label className="flex items-center gap-2 p-3 rounded-lg border border-dashed cursor-pointer hover:bg-secondary/50 transition-colors">
+            <Input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} className="bg-secondary border-border/60" />
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
@@ -170,34 +168,37 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="absolute top-4 right-4 z-10">
-        <button onClick={toggle} className="p-2.5 rounded-full bg-card border shadow-sm hover:shadow-md transition-all active:scale-95">
+        <button onClick={toggle} className="p-2.5 rounded-full glass-card hover:gold-glow transition-all active:scale-95">
           {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
         </button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
         <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-            <Shield className="w-8 h-8 text-primary-foreground" />
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4 gold-glow">
+            <Shield className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">SAFE GUARD</h1>
-          <p className="text-sm text-muted-foreground mt-1">Your safety, our priority</p>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-tight text-primary">SAFE</span>
+            <span className="text-sm font-bold tracking-wider px-3 py-1 rounded-lg border border-border bg-secondary text-foreground">GUARD</span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-2">Your safety, our priority</p>
         </div>
 
         {step === "role" && (
           <div className="w-full space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <p className="text-sm font-medium text-center text-muted-foreground mb-4">Choose your role to continue</p>
+            <p className="label-caps text-center mb-4">Choose your role to continue</p>
             {roles.map((role, i) => (
               <button
                 key={role.id}
                 onClick={() => { setSelectedRole(role.id); setStep("login"); }}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border bg-card hover:shadow-md transition-all active:scale-[0.98] group"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl glass-card hover:gold-glow transition-all active:scale-[0.98] group"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", role.color)}>
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", role.color)}>
                   <role.icon className="w-5 h-5" />
                 </div>
-                <span className="font-medium flex-1 text-left">{role.label}</span>
+                <span className="font-bold flex-1 text-left">{role.label}</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
               </button>
             ))}
@@ -215,12 +216,12 @@ export default function LoginPage() {
                 const r = roles.find((r) => r.id === selectedRole)!;
                 return (
                   <>
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", r.color)}>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", r.color)}>
                       <r.icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="font-semibold">{r.label}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-bold">{r.label}</p>
+                      <p className="label-caps">
                         {step === "login" ? "Sign in to continue" : "Create your account"}
                       </p>
                     </div>
@@ -231,9 +232,9 @@ export default function LoginPage() {
 
             <form onSubmit={step === "login" ? handleLogin : handleRegister} className="space-y-3">
               {step === "register" && roleFields()}
-              <Input type="email" placeholder="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Input type="password" placeholder="Password *" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-              <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
+              <Input type="email" placeholder="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-secondary border-border/60" />
+              <Input type="password" placeholder="Password *" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-secondary border-border/60" />
+              <Button type="submit" className="w-full h-11 font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {step === "login" ? "Sign In" : "Create Account"}
               </Button>
@@ -241,9 +242,9 @@ export default function LoginPage() {
 
             <p className="text-center text-sm text-muted-foreground mt-4">
               {step === "login" ? (
-                <>Don't have an account?{" "}<button onClick={() => setStep("register")} className="text-primary font-medium hover:underline">Register</button></>
+                <>Don't have an account?{" "}<button onClick={() => setStep("register")} className="text-primary font-bold hover:underline">Register</button></>
               ) : (
-                <>Already have an account?{" "}<button onClick={() => setStep("login")} className="text-primary font-medium hover:underline">Sign In</button></>
+                <>Already have an account?{" "}<button onClick={() => setStep("login")} className="text-primary font-bold hover:underline">Sign In</button></>
               )}
             </p>
           </div>

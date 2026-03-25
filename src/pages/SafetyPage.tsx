@@ -1,4 +1,4 @@
-import { Heart, Phone, MapPin, Shield } from "lucide-react";
+import { Heart, Phone } from "lucide-react";
 
 export default function SafetyPage() {
   const tips = [
@@ -10,12 +10,12 @@ export default function SafetyPage() {
 
   return (
     <div className="px-4 space-y-4">
-      <h2 className="text-sm font-semibold px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">Safety Tips</h2>
+      <h2 className="label-caps px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">Safety Tips</h2>
 
       <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
         {tips.map((tip, i) => (
-          <div key={i} className="flex items-center gap-3 p-3.5 rounded-xl bg-card border">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div key={i} className="glass-card flex items-center gap-3 p-3.5 rounded-2xl">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
               <Heart className="w-3.5 h-3.5 text-primary" />
             </div>
             <p className="text-sm">{tip}</p>
@@ -23,7 +23,7 @@ export default function SafetyPage() {
         ))}
       </div>
 
-      <h2 className="text-sm font-semibold px-1 pt-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">Emergency Numbers</h2>
+      <h2 className="label-caps px-1 pt-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">Emergency Numbers</h2>
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
         {[
           { name: "Women Helpline", number: "1091" },
@@ -34,10 +34,10 @@ export default function SafetyPage() {
           <a
             key={item.number}
             href={`tel:${item.number}`}
-            className="flex flex-col items-center p-4 rounded-xl bg-card border hover:shadow-md transition-all active:scale-[0.97] text-center"
+            className="glass-card flex flex-col items-center p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97] text-center"
           >
             <Phone className="w-5 h-5 text-primary mb-2" />
-            <p className="text-sm font-semibold">{item.number}</p>
+            <p className="text-sm font-bold">{item.number}</p>
             <p className="text-[10px] text-muted-foreground">{item.name}</p>
           </a>
         ))}

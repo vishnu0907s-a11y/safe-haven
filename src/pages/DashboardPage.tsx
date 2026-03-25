@@ -1,4 +1,4 @@
-import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { cn } from "@/lib/utils";
@@ -15,35 +15,41 @@ export default function DashboardPage() {
   return (
     <div className="px-4 space-y-4">
       {/* User profile card */}
-      <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-card border shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-          {user.full_name.charAt(0)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{user.full_name}</p>
-          <p className="text-xs text-muted-foreground capitalize">{user.role} • {user.city}</p>
-        </div>
-        <div className={cn(
-          "text-[10px] font-semibold px-2.5 py-1 rounded-full",
-          user.verification_status === "verified"
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-        )}>
-          {user.verification_status === "verified" ? "Verified" : "Pending"}
+      <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-primary font-black text-lg">
+            {user.full_name.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-foreground truncate">{user.full_name}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="label-caps">{user.role}</span>
+              <span className="text-muted-foreground text-[10px]">•</span>
+              <span className="text-[10px] text-muted-foreground">{user.city}</span>
+            </div>
+          </div>
+          <div className={cn(
+            "text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider",
+            user.verification_status === "verified"
+              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+              : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+          )}>
+            {user.verification_status === "verified" ? "Verified" : "Pending"}
+          </div>
         </div>
       </div>
 
       {/* Women user: Emergency button */}
       {user.role === "women" && (
-        <div className="rounded-2xl bg-card border shadow-sm p-5 text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-          <div className="flex items-center justify-center gap-2 mb-2">
+        <div className="glass-card rounded-2xl p-6 text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+          <div className="flex items-center justify-center gap-2 mb-1">
             <AlertTriangle className="w-4 h-4 text-primary" />
-            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Alert Signal</p>
+            <p className="label-caps">Alert Signal</p>
           </div>
 
           {activeAlert ? (
-            <div className="space-y-3">
-              <div className="w-36 h-36 mx-auto rounded-full flex items-center justify-center bg-emerald-500 text-white animate-in zoom-in-75 duration-300">
+            <div className="space-y-3 mt-4">
+              <div className="w-36 h-36 mx-auto rounded-full flex items-center justify-center bg-emerald-500 text-white animate-in zoom-in-75 duration-300 gold-glow">
                 <div className="flex flex-col items-center gap-1">
                   <CheckCircle2 className="w-7 h-7" />
                   <span className="text-sm font-bold">Alert Active</span>
@@ -52,33 +58,36 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={cancelAlert}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-destructive/10 hover:text-destructive transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary text-muted-foreground text-xs font-medium hover:bg-destructive/20 hover:text-destructive transition-colors"
               >
                 <X className="w-3 h-3" /> Cancel Alert
               </button>
             </div>
           ) : (
-            <button
-              onClick={sendAlert}
-              disabled={sending}
-              className={cn(
-                "relative w-36 h-36 mx-auto rounded-full flex items-center justify-center",
-                "bg-gradient-to-b from-red-500 to-red-700 text-white shadow-xl shadow-red-500/30",
-                "hover:shadow-2xl hover:shadow-red-500/40 transition-all duration-200",
-                "active:scale-95 disabled:opacity-60",
-                "after:absolute after:inset-0 after:rounded-full after:border-4 after:border-red-400/30 after:animate-ping"
-              )}
-            >
-              <div className="flex flex-col items-center gap-1 z-10">
-                <MapPin className="w-7 h-7" />
-                <span className="text-lg font-black tracking-wide">
-                  {sending ? "SENDING..." : "HELP ME"}
-                </span>
-              </div>
-            </button>
+            <div className="mt-4">
+              <button
+                onClick={sendAlert}
+                disabled={sending}
+                className={cn(
+                  "relative w-36 h-36 mx-auto rounded-full flex items-center justify-center",
+                  "bg-gradient-to-b from-red-500 to-red-700 text-white shadow-xl",
+                  "hover:shadow-2xl transition-all duration-200",
+                  "active:scale-95 disabled:opacity-60",
+                  "after:absolute after:inset-0 after:rounded-full after:border-4 after:border-red-400/30 after:animate-ping"
+                )}
+                style={{ boxShadow: "0 0 30px rgba(239,68,68,0.3), 0 0 60px rgba(239,68,68,0.1)" }}
+              >
+                <div className="flex flex-col items-center gap-1 z-10">
+                  <MapPin className="w-7 h-7" />
+                  <span className="text-lg font-black tracking-wide">
+                    {sending ? "SENDING..." : "HELP ME"}
+                  </span>
+                </div>
+              </button>
+            </div>
           )}
 
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-[11px] text-muted-foreground mt-5">
             Press the button to send emergency alert with your GPS location
           </p>
         </div>
@@ -87,19 +96,19 @@ export default function DashboardPage() {
       {/* Responder: Incoming alerts */}
       {isResponder && (
         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-1">
             <AlertTriangle className="w-4 h-4 text-destructive" />
-            <h2 className="text-sm font-semibold">Active Emergency Alerts</h2>
+            <h2 className="label-caps text-destructive/80">Active Emergency Alerts</h2>
             {alerts.length > 0 && (
-              <span className="text-[10px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
+              <span className="text-[9px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
                 {alerts.length}
               </span>
             )}
           </div>
 
           {alerts.length === 0 ? (
-            <div className="p-6 rounded-xl bg-card border text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+            <div className="glass-card p-6 rounded-2xl text-center">
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No active emergencies</p>
             </div>
           ) : (
@@ -107,15 +116,15 @@ export default function DashboardPage() {
               const accepted = alert.accepted_by || [];
               const hasAccepted = accepted.includes(user.user_id);
               return (
-                <div key={alert.id} className="p-4 rounded-xl bg-card border border-destructive/20 space-y-3">
+                <div key={alert.id} className="glass-card p-4 rounded-2xl border-destructive/20 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-destructive">🚨 Emergency Alert</p>
+                      <p className="text-sm font-bold text-destructive">🚨 Emergency Alert</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {new Date(alert.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <span className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-[9px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-bold">
                       {accepted.length}/10 accepted
                     </span>
                   </div>
@@ -124,7 +133,7 @@ export default function DashboardPage() {
                     <span>{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
                   </div>
                   {hasAccepted ? (
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
                       <CheckCircle2 className="w-4 h-4" />
                       You accepted — navigate to victim
                     </div>
@@ -132,7 +141,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => acceptAlert(alert.id)}
                       disabled={accepted.length >= 10}
-                      className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50"
+                      className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-50"
                     >
                       Accept & Respond
                     </button>
@@ -146,21 +155,21 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-        <button className="flex items-center gap-3 p-4 rounded-xl bg-card border hover:shadow-md transition-all active:scale-[0.97]">
-          <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-            <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <button className="glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97]">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <Phone className="w-4.5 h-4.5 text-blue-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium">SOS Call</p>
+            <p className="text-sm font-bold">SOS Call</p>
             <p className="text-[10px] text-muted-foreground">Emergency dial</p>
           </div>
         </button>
-        <button className="flex items-center gap-3 p-4 rounded-xl bg-card border hover:shadow-md transition-all active:scale-[0.97]">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <button className="glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97]">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <Shield className="w-4.5 h-4.5 text-emerald-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium">Safe Zone</p>
+            <p className="text-sm font-bold">Safe Zone</p>
             <p className="text-[10px] text-muted-foreground">Nearby shelters</p>
           </div>
         </button>
