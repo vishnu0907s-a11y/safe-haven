@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye } from "lucide-react";
+import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, MapPin } from "lucide-react";
 import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
+import { useDangerZones } from "@/hooks/use-danger-zones";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -29,36 +30,46 @@ const myLocationIcon = L.divIcon({
   iconAnchor: [10, 10],
 });
 
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getEta(distKm: number) {
+  // Assume avg speed 30 km/h in city
+  const minutes = Math.round((distKm / 30) * 60);
+  if (minutes < 1) return "<1 min";
+  return `~${minutes} min`;
+}
+
 export default function MapPage() {
   const { user } = useAuth();
   const { alerts, acceptAlert } = useRealtimeAlerts();
+  const { zones } = useDangerZones();
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const myMarkerRef = useRef<L.Marker | null>(null);
   const alertMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLineRef = useRef<L.Polyline | null>(null);
+  const dangerCirclesRef = useRef<L.Circle[]>([]);
   const [myPos, setMyPos] = useState<[number, number] | null>(null);
   const [trackingAlertId, setTrackingAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
-
     const map = L.map(mapContainerRef.current, {
       center: [20.5937, 78.9629],
       zoom: 5,
       zoomControl: false,
     });
-
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     }).addTo(map);
-
     mapRef.current = map;
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    return () => { map.remove(); mapRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -73,7 +84,6 @@ export default function MapPage() {
 
   useEffect(() => {
     if (!mapRef.current || !myPos) return;
-
     if (myMarkerRef.current) {
       myMarkerRef.current.setLatLng(myPos);
     } else {
@@ -84,18 +94,14 @@ export default function MapPage() {
     }
   }, [myPos]);
 
+  // Alert markers
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
     const currentIds = new Set(alerts.map((a) => a.id));
-
     alertMarkersRef.current.forEach((marker, id) => {
-      if (!currentIds.has(id)) {
-        map.removeLayer(marker);
-        alertMarkersRef.current.delete(id);
-      }
+      if (!currentIds.has(id)) { map.removeLayer(marker); alertMarkersRef.current.delete(id); }
     });
-
     alerts.forEach((alert) => {
       const pos: [number, number] = [alert.latitude, alert.longitude];
       if (alertMarkersRef.current.has(alert.id)) {
@@ -111,21 +117,37 @@ export default function MapPage() {
     });
   }, [alerts]);
 
-  // Draw route line when tracking a victim
+  // Danger zone circles
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
+    dangerCirclesRef.current.forEach((c) => map.removeLayer(c));
+    dangerCirclesRef.current = [];
+    zones.forEach((zone) => {
+      const color = zone.risk_level === "high" ? "#ef4444" : "#f97316";
+      const circle = L.circle([zone.latitude, zone.longitude], {
+        radius: zone.radius_meters,
+        color,
+        fillColor: color,
+        fillOpacity: 0.15,
+        weight: 2,
+        opacity: 0.5,
+      }).addTo(map);
+      circle.bindPopup(
+        `<div style="font-size:12px"><p style="font-weight:700;color:${color}">${zone.risk_level === "high" ? "🔴 High Risk Zone" : "🟠 Medium Risk Zone"}</p><p>${zone.incident_count} incidents</p></div>`
+      );
+      dangerCirclesRef.current.push(circle);
+    });
+  }, [zones]);
 
-    if (routeLineRef.current) {
-      map.removeLayer(routeLineRef.current);
-      routeLineRef.current = null;
-    }
-
+  // Route line for tracking
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
     if (!trackingAlertId || !myPos) return;
-
     const alert = alerts.find((a) => a.id === trackingAlertId);
     if (!alert) return;
-
     const victimPos: [number, number] = [alert.latitude, alert.longitude];
     routeLineRef.current = L.polyline([myPos, victimPos], {
       color: "#eab308",
@@ -133,15 +155,12 @@ export default function MapPage() {
       opacity: 0.8,
       dashArray: "8, 8",
     }).addTo(map);
-
     const bounds = L.latLngBounds([myPos, victimPos]);
     map.fitBounds(bounds, { padding: [50, 50] });
   }, [trackingAlertId, myPos, alerts]);
 
   const handleLocate = () => {
-    if (myPos && mapRef.current) {
-      mapRef.current.flyTo(myPos, 16, { duration: 1 });
-    }
+    if (myPos && mapRef.current) mapRef.current.flyTo(myPos, 16, { duration: 1 });
   };
 
   const handleTrackVictim = useCallback((alertId: string) => {
@@ -168,6 +187,21 @@ export default function MapPage() {
         )}
       </div>
 
+      {/* Danger zones legend */}
+      {zones.length > 0 && (
+        <div className="glass-card rounded-xl p-3 flex items-center gap-4 animate-in fade-in duration-300">
+          <p className="text-[10px] font-bold text-muted-foreground">ZONES:</p>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="text-[10px] text-muted-foreground">High Risk</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+            <span className="text-[10px] text-muted-foreground">Medium</span>
+          </div>
+        </div>
+      )}
+
       {isResponder && alerts.length > 0 && (
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
           <h2 className="label-caps mb-2 flex items-center gap-2">
@@ -179,40 +213,51 @@ export default function MapPage() {
               const accepted = alert.accepted_by || [];
               const hasAccepted = user ? accepted.includes(user.user_id) : false;
               const isTracking = trackingAlertId === alert.id;
+
+              // Distance & ETA
+              let distText = "";
+              let etaText = "";
+              if (myPos) {
+                const d = getDistanceKm(myPos[0], myPos[1], alert.latitude, alert.longitude);
+                distText = d < 1 ? `${(d * 1000).toFixed(0)}m` : `${d.toFixed(1)} km`;
+                etaText = getEta(d);
+              }
+
               return (
-                <div key={alert.id} className={cn("glass-card flex items-center gap-3 p-3 rounded-2xl", isTracking && "border-primary/40")}>
-                  <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center text-destructive text-sm font-bold">
-                    !
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">Emergency Alert</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {alert.latitude.toFixed(3)}, {alert.longitude.toFixed(3)} • {accepted.length} responding
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {hasAccepted && (
-                      <button
-                        onClick={() => handleTrackVictim(alert.id)}
-                        className={cn(
-                          "p-2 rounded-xl transition-colors active:scale-95",
-                          isTracking ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
-                        )}
-                        title="Live track victim"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    {hasAccepted ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <button
-                        onClick={() => acceptAlert(alert.id)}
-                        className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-95"
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                <div key={alert.id} className={cn("glass-card p-3 rounded-2xl", isTracking && "border-primary/40")}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center text-destructive text-sm font-bold">!</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">Emergency Alert</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {accepted.length} responding
+                        {distText && ` • ${distText}`}
+                        {etaText && ` • ETA ${etaText}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {hasAccepted && (
+                        <button
+                          onClick={() => handleTrackVictim(alert.id)}
+                          className={cn(
+                            "p-2 rounded-xl transition-colors active:scale-95",
+                            isTracking ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+                          )}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {hasAccepted ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <button
+                          onClick={() => acceptAlert(alert.id)}
+                          className="p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors active:scale-95"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
