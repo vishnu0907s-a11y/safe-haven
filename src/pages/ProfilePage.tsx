@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { Mail, Phone, MapPin, LogOut, ChevronRight, HelpCircle, Shield, UserCircle, Bell, Bus, Activity } from "lucide-react";
+import { Mail, Phone, MapPin, LogOut, ChevronRight, HelpCircle, Shield, Bell, Bus, Moon, Sun } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-context";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const navigate = useNavigate();
 
   if (!user) return null;
@@ -15,7 +18,7 @@ export default function ProfilePage() {
   };
 
   const menuItems = [
-    { icon: Bell, label: "Emergency Contacts", desc: "Manage your emergency contacts" },
+    { icon: Bell, label: "Emergency Contacts", desc: "Manage your emergency contacts", path: "/emergency-contacts" },
     { icon: Shield, label: "Verification Status", desc: user.verification_status === "verified" ? "Documents verified" : "Verification pending" },
     { icon: HelpCircle, label: "Support & Concierge", desc: "Get help and support" },
   ];
@@ -61,12 +64,27 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Theme toggle */}
+      <div className="glass-card rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {theme === "dark" ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
+            <div>
+              <p className="text-sm font-semibold">Dark Mode</p>
+              <p className="text-[10px] text-muted-foreground">Toggle app theme</p>
+            </div>
+          </div>
+          <Switch checked={theme === "dark"} onCheckedChange={toggle} />
+        </div>
+      </div>
+
       {/* Diagnostics & settings */}
       <div className="glass-card rounded-2xl p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
         <p className="label-caps mb-1">Diagnostics & Settings</p>
         {menuItems.map((item) => (
           <button
             key={item.label}
+            onClick={() => item.path && navigate(item.path)}
             className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border/40 hover:border-primary/30 transition-all active:scale-[0.98]"
           >
             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
