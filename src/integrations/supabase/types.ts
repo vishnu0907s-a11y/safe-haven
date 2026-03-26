@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      danger_zones: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          incident_count: number
+          last_incident_at: string
+          latitude: number
+          longitude: number
+          radius_meters: number
+          risk_level: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          incident_count?: number
+          last_incident_at?: string
+          latitude: number
+          longitude: number
+          radius_meters?: number
+          risk_level?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          incident_count?: number
+          last_incident_at?: string
+          latitude?: number
+          longitude?: number
+          radius_meters?: number
+          risk_level?: string
+        }
+        Relationships: []
+      }
       emergency_alerts: {
         Row: {
           accepted_by: string[] | null
@@ -73,6 +109,30 @@ export type Database = {
           longitude?: number
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emergency_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
           user_id?: string
         }
         Relationships: []
@@ -131,6 +191,39 @@ export type Database = {
           user_id?: string
           vehicle_number?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
+        }
+        Relationships: []
+      }
+      rescue_records: {
+        Row: {
+          alert_id: string
+          created_at: string
+          feedback: string | null
+          id: string
+          points_awarded: number
+          rating: number | null
+          responder_id: string
+          victim_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          points_awarded?: number
+          rating?: number | null
+          responder_id: string
+          victim_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          points_awarded?: number
+          rating?: number | null
+          responder_id?: string
+          victim_id?: string
         }
         Relationships: []
       }
