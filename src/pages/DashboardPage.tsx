@@ -1,11 +1,12 @@
-import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star } from "lucide-react";
-import { useState } from "react";
+import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useAttendance } from "@/hooks/use-attendance";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
 import { useEmergencyContacts } from "@/hooks/use-emergency-contacts";
 import { useResolveAlert } from "@/hooks/use-rescue-records";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 function TelemetryCard() {
@@ -98,30 +99,138 @@ function AttendanceCard() {
   );
 }
 
-function RatingModal({ responderIds, alertId, onClose }: { responderIds: string[]; alertId: string; onClose: () => void }) {
-  const [ratings, setRatings] = useState<Record<number, number>>({});
-  const { rateResponder } = useResolveAlert();
+interface ResponderInfo {
+  user_id: string;
+  full_name: string;
+  role: string;
+}
 
-  // We don't have rescue record IDs yet since they were just created,
-  // so this is a simplified version
+function RescueCompleteScreen({
+  responders,
+  alertId,
+  onClose,
+}: {
+  responders: ResponderInfo[];
+  alertId: string;
+  onClose: () => void;
+}) {
+  const { rateResponder } = useResolveAlert();
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    // For each responder, find their rescue_record and submit rating
+    for (const r of responders) {
+      const { data: records } = await supabase
+        .from("rescue_records")
+        .select("id")
+        .eq("alert_id", alertId)
+        .eq("responder_id", r.user_id)
+        .limit(1);
+
+      if (records && records.length > 0) {
+        const rating = ratings[r.user_id] || 5;
+        const feedback = feedbacks[r.user_id] || undefined;
+        await rateResponder(records[0].id, rating, feedback);
+      }
+    }
+    setSubmitting(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="glass-card rounded-2xl p-6 w-full max-w-sm text-center animate-in zoom-in-95 duration-200 space-y-4">
+          <ShieldCheck className="w-14 h-14 text-emerald-400 mx-auto" />
+          <p className="text-xl font-black">Thank You!</p>
+          <p className="text-sm text-muted-foreground">Your feedback has been submitted.</p>
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:scale-[0.98] transition-transform"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass-card rounded-2xl p-5 w-full max-w-sm space-y-4 animate-in zoom-in-95 duration-200">
+      <div className="glass-card rounded-2xl p-5 w-full max-w-sm space-y-4 animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
         <div className="text-center">
-          <ShieldCheck className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-          <p className="text-lg font-black">You're Safe!</p>
+          <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
+          <p className="text-lg font-black">Rescue Completed</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {responderIds.length} responder(s) helped you
+            Rate the responders who helped you
           </p>
         </div>
-        <p className="text-xs text-muted-foreground text-center">
-          You can rate responders from the Alerts page later.
-        </p>
+
+        {responders.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center">No responders to rate.</p>
+        ) : (
+          <div className="space-y-3">
+            {responders.map((r) => (
+              <div key={r.user_id} className="glass-card rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm border border-primary/20">
+                    {r.full_name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{r.full_name}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                  </div>
+                </div>
+
+                {/* Star rating */}
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setRatings((prev) => ({ ...prev, [r.user_id]: s }))}
+                      className="p-0.5 transition-transform active:scale-90"
+                    >
+                      <Star
+                        className={cn(
+                          "w-6 h-6 transition-colors",
+                          s <= (ratings[r.user_id] || 0)
+                            ? "text-amber-400 fill-amber-400"
+                            : "text-muted-foreground"
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feedback text */}
+                <textarea
+                  placeholder="Write feedback (optional)..."
+                  value={feedbacks[r.user_id] || ""}
+                  onChange={(e) => setFeedbacks((prev) => ({ ...prev, [r.user_id]: e.target.value }))}
+                  className="w-full text-sm bg-secondary/50 border border-border/40 rounded-xl p-3 h-16 resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-black hover:bg-primary/90 transition-colors active:scale-[0.98] disabled:opacity-60"
+        >
+          {submitting ? "Submitting..." : "Submit Ratings"}
+        </button>
+
         <button
           onClick={onClose}
-          className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:scale-[0.98] transition-transform"
+          className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          Done
+          Skip for now
         </button>
       </div>
     </div>
@@ -134,9 +243,9 @@ export default function DashboardPage() {
   const { alerts, acceptAlert } = useRealtimeAlerts();
   const { triggerEmergencyCalls } = useEmergencyContacts();
   const { resolveAlert } = useResolveAlert();
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const [resolvedResponders, setResolvedResponders] = useState<string[]>([]);
-  const [resolvedAlertId, setResolvedAlertId] = useState<string>("");
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [resolvedResponders, setResolvedResponders] = useState<ResponderInfo[]>([]);
+  const [resolvedAlertId, setResolvedAlertId] = useState("");
 
   if (!user) return null;
 
@@ -144,36 +253,47 @@ export default function DashboardPage() {
 
   const handleSOS = async () => {
     await sendAlert();
-    // Auto-call emergency contacts & police
     triggerEmergencyCalls();
   };
 
   const handleSafeNow = async () => {
     if (!activeAlert) return;
-    const responders = activeAlert.accepted_by || [];
-    setResolvedResponders(responders);
-    setResolvedAlertId(activeAlert.id);
-    await resolveAlert(activeAlert.id, responders);
-    cancelAlert();
-    setShowRatingModal(true);
-  };
+    const responderIds = activeAlert.accepted_by || [];
+    
+    // Fetch responder profiles
+    let responderInfos: ResponderInfo[] = [];
+    if (responderIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", responderIds);
+      
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", responderIds);
 
-  // Distance calculation helper
-  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      responderInfos = (profiles || []).map((p) => ({
+        user_id: p.user_id,
+        full_name: p.full_name,
+        role: roles?.find((r) => r.user_id === p.user_id)?.role || "responder",
+      }));
+    }
+
+    setResolvedResponders(responderInfos);
+    setResolvedAlertId(activeAlert.id);
+    await resolveAlert(activeAlert.id, responderIds);
+    cancelAlert();
+    setShowFeedback(true);
   };
 
   return (
     <div className="px-4 space-y-4">
-      {showRatingModal && (
-        <RatingModal
-          responderIds={resolvedResponders}
+      {showFeedback && (
+        <RescueCompleteScreen
+          responders={resolvedResponders}
           alertId={resolvedAlertId}
-          onClose={() => setShowRatingModal(false)}
+          onClose={() => setShowFeedback(false)}
         />
       )}
 
@@ -226,7 +346,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* SAFE NOW button */}
               <button
                 onClick={handleSafeNow}
                 className="w-full py-3 rounded-xl bg-emerald-500 text-white text-sm font-black hover:bg-emerald-600 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
@@ -272,7 +391,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Responder: Incoming alerts with distance/ETA */}
+      {/* Responder: Incoming alerts */}
       {isResponder && (
         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
           <div className="flex items-center gap-2 px-1">
@@ -294,14 +413,6 @@ export default function DashboardPage() {
             alerts.map((alert) => {
               const accepted = alert.accepted_by || [];
               const hasAccepted = accepted.includes(user.user_id);
-
-              // Calculate distance if we have user location
-              let distKm = "—";
-              let eta = "—";
-              if (navigator.geolocation) {
-                // We use a cached approach via the telemetry hook in a real app
-                // For now, show coordinates
-              }
 
               return (
                 <div key={alert.id} className="glass-card p-4 rounded-2xl border-destructive/20 space-y-3">
