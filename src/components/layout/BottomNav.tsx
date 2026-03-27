@@ -12,8 +12,8 @@ interface NavItem {
 const womenNav: NavItem[] = [
   { icon: Home, label: "HOME", path: "/dashboard" },
   { icon: Map, label: "MAP", path: "/map" },
-  { icon: Bell, label: "ALERTS", path: "/alerts" },
   { icon: Heart, label: "SAFETY", path: "/safety" },
+  { icon: Bell, label: "ALERTS", path: "/alerts" },
   { icon: User, label: "PROFILE", path: "/profile" },
 ];
 
