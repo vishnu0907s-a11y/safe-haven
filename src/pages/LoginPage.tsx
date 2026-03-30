@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } from "lucide-react";
+import { ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } from "lucide-react";
+import resqherLogo from "@/assets/resqher-logo.png";
 import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
