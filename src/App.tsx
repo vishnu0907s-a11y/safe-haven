@@ -37,6 +37,16 @@ function AppRoutes() {
           isAuthenticated ? (
             <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />
           ) : (
+            <WelcomePage />
+          )
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />
+          ) : (
             <LoginPage />
           )
         }
