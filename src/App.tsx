@@ -66,18 +66,24 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <ThemeProvider>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </ThemeProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
+
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+};
 
 export default App;
