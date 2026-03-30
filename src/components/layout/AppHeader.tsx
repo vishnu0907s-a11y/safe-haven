@@ -1,6 +1,7 @@
-import { Shield, Sun, Moon, Bell } from "lucide-react";
+import { Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
+import resqherLogo from "@/assets/resqher-logo.png";
 
 export function AppHeader() {
   const { theme, toggle } = useTheme();
