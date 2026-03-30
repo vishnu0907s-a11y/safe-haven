@@ -251,7 +251,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-center text-[11px] text-muted-foreground pb-6">Protected by Safe Guard Security</p>
+      <p className="text-center text-[11px] text-muted-foreground pb-6">Protected by ResQHer Security</p>
     </div>
   );
 }
