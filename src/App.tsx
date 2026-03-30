@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AppLayout } from "@/components/layout/AppLayout";
+import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -32,6 +33,16 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/"
+        element={
+          isAuthenticated ? (
+            <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />
+          ) : (
+            <WelcomePage />
+          )
+        }
+      />
+      <Route
+        path="/login"
         element={
           isAuthenticated ? (
             <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />

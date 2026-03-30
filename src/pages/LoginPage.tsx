@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } from "lucide-react";
+import { ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } from "lucide-react";
+import resqherLogo from "@/assets/resqher-logo.png";
 import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
@@ -175,13 +176,12 @@ export default function LoginPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
         <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4 gold-glow">
-            <Shield className="w-8 h-8 text-primary" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-black tracking-tight text-primary">SAFE</span>
-            <span className="text-sm font-bold tracking-wider px-3 py-1 rounded-lg border border-border bg-secondary text-foreground">GUARD</span>
-          </div>
+          <img src={resqherLogo} alt="ResQHer" width={64} height={64} className="mb-4 drop-shadow-lg" />
+          <h1 className="text-2xl font-black tracking-tight">
+            <span className="text-destructive">Res</span>
+            <span className="text-primary">Q</span>
+            <span className="text-destructive">Her</span>
+          </h1>
           <p className="text-sm text-muted-foreground mt-2">Your safety, our priority</p>
         </div>
 
@@ -251,7 +251,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-center text-[11px] text-muted-foreground pb-6">Protected by Safe Guard Security</p>
+      <p className="text-center text-[11px] text-muted-foreground pb-6">Protected by ResQHer Security</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { Shield, Sun, Moon, Bell } from "lucide-react";
+import { Sun, Moon, Bell } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth-context";
+import resqherLogo from "@/assets/resqher-logo.png";
 
 export function AppHeader() {
   const { theme, toggle } = useTheme();
@@ -9,14 +10,13 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 glass-card border-b border-border/40">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-          <Shield className="w-5 h-5 text-primary" />
-        </div>
+        <img src={resqherLogo} alt="ResQHer" width={40} height={40} className="drop-shadow-md" />
         <div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-base font-extrabold tracking-tight text-primary">SAFE</span>
-            <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md border border-border bg-secondary text-foreground">GUARD</span>
-          </div>
+          <h1 className="text-base font-extrabold tracking-tight">
+            <span className="text-destructive">Res</span>
+            <span className="text-primary">Q</span>
+            <span className="text-destructive">Her</span>
+          </h1>
           {user && (
             <p className="label-caps mt-0.5">{user.role} Portal</p>
           )}

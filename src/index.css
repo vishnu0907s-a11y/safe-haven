@@ -131,4 +131,15 @@
     @apply text-[10px] font-bold uppercase tracking-[0.15em];
     color: hsl(var(--primary) / 0.7);
   }
+  .splash-bg {
+    background: linear-gradient(160deg, hsl(0 40% 8%) 0%, hsl(0 72% 18%) 50%, hsl(0 50% 10%) 100%);
+  }
+  .logo-pulse {
+    animation: logoPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px hsl(0 70% 50% / 0.3)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 28px hsl(0 70% 50% / 0.5)); }
 }
