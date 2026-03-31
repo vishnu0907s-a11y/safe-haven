@@ -84,5 +84,5 @@ export function useEmergencyContacts() {
     });
   }, [contacts]);
 
-  return { contacts, loading, addContact, removeContact, triggerEmergencyCalls };
+  return { contacts, loading, addContact, removeContact, triggerEmergencyCalls, sendWhatsAppAlerts };
 }
