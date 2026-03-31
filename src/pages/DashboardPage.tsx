@@ -241,7 +241,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
   const { alerts, acceptAlert } = useRealtimeAlerts();
-  const { triggerEmergencyCalls } = useEmergencyContacts();
+  const { triggerEmergencyCalls, sendWhatsAppAlerts } = useEmergencyContacts();
   const { resolveAlert } = useResolveAlert();
   const [showFeedback, setShowFeedback] = useState(false);
   const [resolvedResponders, setResolvedResponders] = useState<ResponderInfo[]>([]);
@@ -252,8 +252,29 @@ export default function DashboardPage() {
   const isResponder = ["driver", "police", "protector"].includes(user.role);
 
   const handleSOS = async () => {
-    await sendAlert();
-    triggerEmergencyCalls();
+    // Get GPS first, then send alert + WhatsApp messages
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        });
+      });
+      const { latitude, longitude } = position.coords;
+      
+      // Send emergency alert to Supabase
+      await sendAlert();
+      
+      // Send WhatsApp messages with location to emergency contacts
+      sendWhatsAppAlerts(latitude, longitude);
+      
+      // Also trigger emergency calls
+      triggerEmergencyCalls();
+    } catch {
+      // If location fails, still send alert (sendAlert handles its own location)
+      await sendAlert();
+      triggerEmergencyCalls();
+    }
   };
 
   const handleSafeNow = async () => {
