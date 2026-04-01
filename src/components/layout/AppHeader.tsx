@@ -10,7 +10,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 glass-card border-b border-border/40">
       <div className="flex items-center gap-3">
-        <img src={resqherLogo} alt="ResQHer" width={52} height={52} className="drop-shadow-md" />
+        <img src={resqherLogo} alt="ResQHer" width={56} height={56} className="drop-shadow-md" />
         <div>
           <h1 className="text-base font-extrabold tracking-tight">
             <span className="text-destructive">Res</span>

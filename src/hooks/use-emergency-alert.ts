@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useAttendance } from "@/hooks/use-attendance";
 import { toast } from "sonner";
 
 interface EmergencyAlert {
@@ -19,7 +20,6 @@ export function useSendEmergencyAlert() {
   const [sending, setSending] = useState(false);
   const [activeAlert, setActiveAlert] = useState<EmergencyAlert | null>(null);
 
-  // Check for existing active alert on mount
   useEffect(() => {
     if (!supabaseUser) return;
     supabase
@@ -38,7 +38,6 @@ export function useSendEmergencyAlert() {
     if (!supabaseUser) return;
     setSending(true);
     try {
-      // Get GPS location
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -86,12 +85,14 @@ export function useSendEmergencyAlert() {
 
 export function useRealtimeAlerts() {
   const { user } = useAuth();
+  const { activeShift } = useAttendance();
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isResponder = user && ["driver", "police", "protector"].includes(user.role);
+  // Only show alerts to on-duty rescuers
+  const isOnDuty = !!activeShift;
 
-  // Fetch active alerts
   const fetchAlerts = useCallback(async () => {
     const { data } = await supabase
       .from("emergency_alerts")
@@ -103,13 +104,13 @@ export function useRealtimeAlerts() {
   }, []);
 
   useEffect(() => {
-    if (!isResponder) {
+    if (!isResponder || !isOnDuty) {
+      setAlerts([]);
       setLoading(false);
       return;
     }
     fetchAlerts();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("emergency-alerts-realtime")
       .on(
@@ -122,6 +123,7 @@ export function useRealtimeAlerts() {
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as EmergencyAlert;
             if (updated.status === "resolved") {
+              // Instantly remove resolved alerts
               setAlerts((prev) => prev.filter((a) => a.id !== updated.id));
             } else {
               setAlerts((prev) =>
@@ -138,7 +140,7 @@ export function useRealtimeAlerts() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isResponder, fetchAlerts]);
+  }, [isResponder, isOnDuty, fetchAlerts]);
 
   const acceptAlert = useCallback(
     async (alertId: string) => {

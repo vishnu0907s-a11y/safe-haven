@@ -1,4 +1,4 @@
-import { MapPin, Phone, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { MapPin, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
@@ -122,7 +122,6 @@ function RescueCompleteScreen({
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    // For each responder, find their rescue_record and submit rating
     for (const r of responders) {
       const { data: records } = await supabase
         .from("rescue_records")
@@ -165,9 +164,7 @@ function RescueCompleteScreen({
         <div className="text-center">
           <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
           <p className="text-lg font-black">Rescue Completed</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Rate the responders who helped you
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Rate the responders who helped you</p>
         </div>
 
         {responders.length === 0 ? (
@@ -185,8 +182,6 @@ function RescueCompleteScreen({
                     <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
                   </div>
                 </div>
-
-                {/* Star rating */}
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <button
@@ -205,8 +200,6 @@ function RescueCompleteScreen({
                     </button>
                   ))}
                 </div>
-
-                {/* Feedback text */}
                 <textarea
                   placeholder="Write feedback (optional)..."
                   value={feedbacks[r.user_id] || ""}
@@ -225,7 +218,6 @@ function RescueCompleteScreen({
         >
           {submitting ? "Submitting..." : "Submit Ratings"}
         </button>
-
         <button
           onClick={onClose}
           className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -241,7 +233,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
   const { alerts, acceptAlert } = useRealtimeAlerts();
-  const { triggerEmergencyCalls, sendWhatsAppAlerts } = useEmergencyContacts();
+  const { sendWhatsAppAlerts } = useEmergencyContacts();
   const { resolveAlert } = useResolveAlert();
   const [showFeedback, setShowFeedback] = useState(false);
   const [resolvedResponders, setResolvedResponders] = useState<ResponderInfo[]>([]);
@@ -251,8 +243,8 @@ export default function DashboardPage() {
 
   const isResponder = ["driver", "police", "protector"].includes(user.role);
 
+  // One-tap WhatsApp-only emergency (no calls, no confirmation)
   const handleSOS = async () => {
-    // Get GPS first, then send alert + WhatsApp messages
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -261,34 +253,29 @@ export default function DashboardPage() {
         });
       });
       const { latitude, longitude } = position.coords;
-      
-      // Send emergency alert to Supabase
+
+      // Send alert to database
       await sendAlert();
-      
-      // Send WhatsApp messages with location to emergency contacts
+
+      // Send WhatsApp messages only — no phone calls
       sendWhatsAppAlerts(latitude, longitude);
-      
-      // Also trigger emergency calls
-      triggerEmergencyCalls();
     } catch {
-      // If location fails, still send alert (sendAlert handles its own location)
+      // If location fails, still send alert
       await sendAlert();
-      triggerEmergencyCalls();
     }
   };
 
   const handleSafeNow = async () => {
     if (!activeAlert) return;
     const responderIds = activeAlert.accepted_by || [];
-    
-    // Fetch responder profiles
+
     let responderInfos: ResponderInfo[] = [];
     if (responderIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", responderIds);
-      
+
       const { data: roles } = await supabase
         .from("user_roles")
         .select("user_id, role")
@@ -407,12 +394,12 @@ export default function DashboardPage() {
           )}
 
           <p className="text-[11px] text-muted-foreground mt-5">
-            Press to send emergency alert with GPS location & auto-call contacts
+            Press to send emergency alert via WhatsApp with your live GPS location
           </p>
         </div>
       )}
 
-      {/* Responder: Incoming alerts */}
+      {/* Responder: Incoming alerts (only shown if on duty) */}
       {isResponder && (
         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
           <div className="flex items-center gap-2 px-1">
@@ -473,17 +460,17 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Quick actions */}
+      {/* Quick actions — no phone call for women */}
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-        <a href="tel:100" className="glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97]">
+        <button className="glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97]">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-            <Phone className="w-4 h-4 text-blue-400" />
+            <MapPin className="w-4 h-4 text-blue-400" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-bold">SOS Call</p>
-            <p className="text-[10px] text-muted-foreground">Call police 100</p>
+            <p className="text-sm font-bold">Live Map</p>
+            <p className="text-[10px] text-muted-foreground">Track location</p>
           </div>
-        </a>
+        </button>
         <button className="glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97]">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
             <Shield className="w-4 h-4 text-emerald-400" />

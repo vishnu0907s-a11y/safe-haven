@@ -71,7 +71,7 @@ export default function SafetyPage() {
                 className="h-10 text-sm bg-secondary/50 border-border/40"
               />
               <Input
-                placeholder="Phone Number"
+                placeholder="Phone Number (with country code)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 type="tel"
@@ -95,7 +95,7 @@ export default function SafetyPage() {
             <div className="glass-card p-8 rounded-2xl text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
               <Phone className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
               <p className="text-sm font-medium text-muted-foreground">No emergency contacts yet</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Add contacts to auto-call during emergencies</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Add contacts to send WhatsApp alerts during emergencies</p>
             </div>
           ) : (
             <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
@@ -108,20 +108,12 @@ export default function SafetyPage() {
                     <p className="text-sm font-bold truncate">{contact.name}</p>
                     <p className="text-[10px] text-muted-foreground">{contact.phone}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <a
-                      href={`tel:${contact.phone}`}
-                      className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors active:scale-95"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                    </a>
-                    <button
-                      onClick={() => removeContact(contact.id)}
-                      className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => removeContact(contact.id)}
+                    className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -129,7 +121,7 @@ export default function SafetyPage() {
 
           <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              💡 When you press <span className="font-bold text-destructive">HELP ME</span>, the app will automatically attempt to call police (100) and all your emergency contacts listed above.
+              💡 When you press <span className="font-bold text-destructive">HELP ME</span>, the app will automatically send a WhatsApp message with your live GPS location to all your emergency contacts.
             </p>
           </div>
         </>
