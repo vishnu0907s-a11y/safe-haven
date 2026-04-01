@@ -9,9 +9,7 @@ export default function WelcomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Vibration feedback on open (if supported)
     if (navigator.vibrate) navigator.vibrate(50);
-
     const timer = setTimeout(() => setPhase("welcome"), 2500);
     return () => clearTimeout(timer);
   }, []);
@@ -25,8 +23,8 @@ export default function WelcomePage() {
             <img
               src={resqherLogo}
               alt="ResQHer Logo"
-              width={140}
-              height={140}
+              width={160}
+              height={160}
               className="relative z-10 drop-shadow-2xl logo-pulse"
             />
           </div>
@@ -48,9 +46,8 @@ export default function WelcomePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 max-w-lg mx-auto w-full animate-in fade-in duration-700">
-      {/* Logo */}
       <div className="flex flex-col items-center gap-2 pt-4">
-        <img src={resqherLogo} alt="ResQHer" width={72} height={72} className="drop-shadow-lg" />
+        <img src={resqherLogo} alt="ResQHer" width={88} height={88} className="drop-shadow-lg" />
         <h1 className="text-2xl font-black tracking-tight">
           <span className="text-destructive">Res</span>
           <span className="text-primary">Q</span>
@@ -58,7 +55,6 @@ export default function WelcomePage() {
         </h1>
       </div>
 
-      {/* Illustration */}
       <div className="flex-1 flex items-center justify-center py-6">
         <img
           src={welcomeIllustration}
@@ -69,7 +65,6 @@ export default function WelcomePage() {
         />
       </div>
 
-      {/* Text + Features */}
       <div className="w-full space-y-6">
         <div className="text-center">
           <h2 className="text-xl font-bold text-foreground">Welcome to ResQHer</h2>

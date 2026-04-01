@@ -57,13 +57,13 @@ export function useEmergencyContacts() {
     }
   }, []);
 
+  // WhatsApp-only alert — no confirmation, instant trigger
   const sendWhatsAppAlerts = useCallback((latitude: number, longitude: number) => {
     const mapsUrl = `https://maps.google.com/maps?q=${latitude},${longitude}`;
     const message = encodeURIComponent(
-      `🚨 EMERGENCY ALERT 🚨\n\nI need help urgently! This is an SOS from ResQHer.\n\n📍 My Live Location:\n${mapsUrl}\n\nPlease respond immediately or call emergency services (100).`
+      `🚨 Emergency Alert!\n\nI need help immediately.\n\n📍 My live location:\n${mapsUrl}\n\nPlease respond immediately or call emergency services.`
     );
 
-    // Send WhatsApp message to each emergency contact
     contacts.forEach((contact, i) => {
       const phone = contact.phone.replace(/[^0-9+]/g, "");
       const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
@@ -73,16 +73,5 @@ export function useEmergencyContacts() {
     });
   }, [contacts]);
 
-  const triggerEmergencyCalls = useCallback(() => {
-    // Call police helpline first
-    window.open("tel:100", "_self");
-    // Then call emergency contacts
-    contacts.forEach((contact, i) => {
-      setTimeout(() => {
-        window.open(`tel:${contact.phone}`, "_self");
-      }, (i + 1) * 2000);
-    });
-  }, [contacts]);
-
-  return { contacts, loading, addContact, removeContact, triggerEmergencyCalls, sendWhatsAppAlerts };
+  return { contacts, loading, addContact, removeContact, sendWhatsAppAlerts };
 }

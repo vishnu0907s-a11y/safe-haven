@@ -63,6 +63,13 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole || !fullName || !email || !password) return;
+
+    // Require ID proof for all non-admin roles
+    if (selectedRole !== "admin" && !aadhaarFile && !licenseFile) {
+      toast({ title: "ID Proof Required", description: "Please upload Aadhaar or Government ID proof to register.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
 
     const metadata: Record<string, string> = { full_name: fullName };
@@ -101,7 +108,7 @@ export default function LoginPage() {
       }
     }
 
-    toast({ title: "Account created!", description: "Your documents are pending verification." });
+    toast({ title: "Account created!", description: "Your documents are pending verification by admin." });
     setLoading(false);
   };
 
@@ -119,7 +126,7 @@ export default function LoginPage() {
             <Input type="date" placeholder="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -130,12 +137,12 @@ export default function LoginPage() {
             <Input placeholder="Vehicle Number" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{licenseFile?.name || "Driving License (upload)"}</span>
+              <span className="text-sm text-muted-foreground">{licenseFile?.name || "Driving License *"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -145,6 +152,11 @@ export default function LoginPage() {
           <>
             <Input placeholder="Station Name" value={stationName} onChange={(e) => setStationName(e.target.value)} className="bg-secondary border-border/60" />
             <Input placeholder="Police ID" value={policeId} onChange={(e) => setPoliceId(e.target.value)} className="bg-secondary border-border/60" />
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Police ID Proof *"}</span>
+              <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
+            </label>
           </>
         )}
 
@@ -153,7 +165,7 @@ export default function LoginPage() {
             <Input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar Proof (upload)"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -176,7 +188,7 @@ export default function LoginPage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
         <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <img src={resqherLogo} alt="ResQHer" width={64} height={64} className="mb-4 drop-shadow-lg" />
+          <img src={resqherLogo} alt="ResQHer" width={80} height={80} className="mb-4 drop-shadow-lg" />
           <h1 className="text-2xl font-black tracking-tight">
             <span className="text-destructive">Res</span>
             <span className="text-primary">Q</span>
