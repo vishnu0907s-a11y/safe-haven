@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import { I18nProvider } from "@/lib/i18n-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
@@ -15,6 +16,7 @@ import AlertsPage from "@/pages/AlertsPage";
 import SafetyPage from "@/pages/SafetyPage";
 import PointsPage from "@/pages/PointsPage";
 import EmergencyContactsPage from "@/pages/EmergencyContactsPage";
+import PoliceStationsPage from "@/pages/PoliceStationsPage";
 import NotFound from "@/pages/NotFound";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -68,6 +70,7 @@ function AppRoutes() {
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/points" element={<PointsPage />} />
         <Route path="/emergency-contacts" element={<EmergencyContactsPage />} />
+        <Route path="/police-stations" element={<PoliceStationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
@@ -77,15 +80,17 @@ function AppRoutes() {
 
 const App = () => (
   <ThemeProvider>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </I18nProvider>
   </ThemeProvider>
 );
 

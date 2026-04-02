@@ -4,6 +4,8 @@ import { ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } fr
 import resqherLogo from "@/assets/resqher-logo.png";
 import { useAuth, type UserRole } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
+import { useI18n } from "@/lib/i18n-context";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,20 +13,13 @@ import { Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const roles: { id: UserRole; label: string; icon: React.ElementType; color: string }[] = [
-  { id: "women", label: "Women User", icon: User, color: "bg-pink-500/10 text-pink-400 border border-pink-500/20" },
-  { id: "driver", label: "Driver", icon: Car, color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
-  { id: "police", label: "Police", icon: ShieldCheck, color: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
-  { id: "protector", label: "Public Protector", icon: Users, color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
-  { id: "admin", label: "Admin", icon: Lock, color: "bg-slate-500/10 text-slate-400 border border-slate-500/20" },
-];
-
 export default function LoginPage() {
   const [step, setStep] = useState<"role" | "login" | "register">("role");
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const { theme, toggle } = useTheme();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -41,6 +36,14 @@ export default function LoginPage() {
   const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
+  const roles: { id: UserRole; label: string; icon: React.ElementType; color: string }[] = [
+    { id: "women", label: t("womenUser"), icon: User, color: "bg-pink-500/10 text-pink-400 border border-pink-500/20" },
+    { id: "driver", label: t("driver"), icon: Car, color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
+    { id: "police", label: t("police"), icon: ShieldCheck, color: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
+    { id: "protector", label: t("publicProtector"), icon: Users, color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+    { id: "admin", label: t("admin"), icon: Lock, color: "bg-slate-500/10 text-slate-400 border border-slate-500/20" },
+  ];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
@@ -48,7 +51,7 @@ export default function LoginPage() {
     const result = await login(email, password);
     setLoading(false);
     if (result.error) {
-      toast({ title: "Login failed", description: result.error, variant: "destructive" });
+      toast({ title: t("loginFailed"), description: result.error, variant: "destructive" });
     }
   };
 
@@ -64,9 +67,8 @@ export default function LoginPage() {
     e.preventDefault();
     if (!selectedRole || !fullName || !email || !password) return;
 
-    // Require ID proof for all non-admin roles
     if (selectedRole !== "admin" && !aadhaarFile && !licenseFile) {
-      toast({ title: "ID Proof Required", description: "Please upload Aadhaar or Government ID proof to register.", variant: "destructive" });
+      toast({ title: t("idProofRequired"), description: t("uploadIdProof"), variant: "destructive" });
       return;
     }
 
@@ -83,7 +85,7 @@ export default function LoginPage() {
 
     const result = await register(email, password, selectedRole, metadata);
     if (result.error) {
-      toast({ title: "Registration failed", description: result.error, variant: "destructive" });
+      toast({ title: t("registrationFailed"), description: result.error, variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -104,11 +106,11 @@ export default function LoginPage() {
           await supabase.from("profiles").update(updates).eq("user_id", user.id);
         }
       } catch {
-        toast({ title: "Document upload failed", description: "You can upload documents later from your profile.", variant: "destructive" });
+        toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });
       }
     }
 
-    toast({ title: "Account created!", description: "Your documents are pending verification by admin." });
+    toast({ title: t("accountCreated"), description: t("docsPending") });
     setLoading(false);
   };
 
@@ -117,16 +119,16 @@ export default function LoginPage() {
 
     return (
       <>
-        <Input placeholder="Full Name *" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-secondary border-border/60" />
-        <Input placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border/60" />
+        <Input placeholder={t("fullNamePlaceholder")} value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-secondary border-border/60" />
+        <Input placeholder={t("phonePlaceholder")} value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border/60" />
 
         {selectedRole === "women" && (
           <>
-            <Input placeholder="City / District" value={city} onChange={(e) => setCity(e.target.value)} className="bg-secondary border-border/60" />
-            <Input type="date" placeholder="Date of Birth" value={dob} onChange={(e) => setDob(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder={t("cityPlaceholder")} value={city} onChange={(e) => setCity(e.target.value)} className="bg-secondary border-border/60" />
+            <Input type="date" placeholder={t("dobPlaceholder")} value={dob} onChange={(e) => setDob(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || t("aadhaarUpload")}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -134,15 +136,15 @@ export default function LoginPage() {
 
         {selectedRole === "driver" && (
           <>
-            <Input placeholder="Vehicle Number" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder={t("vehiclePlaceholder")} value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || t("aadhaarUpload")}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{licenseFile?.name || "Driving License *"}</span>
+              <span className="text-sm text-muted-foreground">{licenseFile?.name || t("licenseUpload")}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -150,11 +152,11 @@ export default function LoginPage() {
 
         {selectedRole === "police" && (
           <>
-            <Input placeholder="Station Name" value={stationName} onChange={(e) => setStationName(e.target.value)} className="bg-secondary border-border/60" />
-            <Input placeholder="Police ID" value={policeId} onChange={(e) => setPoliceId(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder={t("stationPlaceholder")} value={stationName} onChange={(e) => setStationName(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder={t("policeIdPlaceholder")} value={policeId} onChange={(e) => setPoliceId(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Police ID Proof *"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || t("policeIdUpload")}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
           </>
@@ -162,17 +164,17 @@ export default function LoginPage() {
 
         {selectedRole === "protector" && (
           <>
-            <Input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} className="bg-secondary border-border/60" />
+            <Input placeholder={t("addressPlaceholder")} value={address} onChange={(e) => setAddress(e.target.value)} className="bg-secondary border-border/60" />
             <label className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/60 cursor-pointer hover:bg-secondary/50 transition-colors bg-secondary/30">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || "Aadhaar / Govt ID Proof *"}</span>
+              <span className="text-sm text-muted-foreground">{aadhaarFile?.name || t("aadhaarUpload")}</span>
               <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)} />
             </label>
           </>
         )}
 
         {selectedRole === "admin" && (
-          <p className="text-xs text-muted-foreground text-center">Admin accounts require special approval</p>
+          <p className="text-xs text-muted-foreground text-center">{t("adminNote")}</p>
         )}
       </>
     );
@@ -180,7 +182,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <LanguageToggle compact />
         <button onClick={toggle} className="p-2.5 rounded-full glass-card hover:gold-glow transition-all active:scale-95">
           {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
         </button>
@@ -194,12 +197,12 @@ export default function LoginPage() {
             <span className="text-primary">Q</span>
             <span className="text-destructive">Her</span>
           </h1>
-          <p className="text-sm text-muted-foreground mt-2">Your safety, our priority</p>
+          <p className="text-sm text-muted-foreground mt-2">{t("tagline")}</p>
         </div>
 
         {step === "role" && (
           <div className="w-full space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <p className="label-caps text-center mb-4">Choose your role to continue</p>
+            <p className="label-caps text-center mb-4">{t("chooseRole")}</p>
             {roles.map((role, i) => (
               <button
                 key={role.id}
@@ -220,7 +223,7 @@ export default function LoginPage() {
         {(step === "login" || step === "register") && selectedRole && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-3 duration-400">
             <button onClick={() => setStep("role")} className="text-sm text-muted-foreground hover:text-foreground mb-6 flex items-center gap-1 active:scale-95">
-              ← Back to role selection
+              {t("backToRole")}
             </button>
 
             <div className="flex items-center gap-3 mb-6">
@@ -234,7 +237,7 @@ export default function LoginPage() {
                     <div>
                       <p className="font-bold">{r.label}</p>
                       <p className="label-caps">
-                        {step === "login" ? "Sign in to continue" : "Create your account"}
+                        {step === "login" ? t("signInToContinue") : t("createYourAccount")}
                       </p>
                     </div>
                   </>
@@ -244,26 +247,26 @@ export default function LoginPage() {
 
             <form onSubmit={step === "login" ? handleLogin : handleRegister} className="space-y-3">
               {step === "register" && roleFields()}
-              <Input type="email" placeholder="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-secondary border-border/60" />
-              <Input type="password" placeholder="Password *" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-secondary border-border/60" />
+              <Input type="email" placeholder={t("emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-secondary border-border/60" />
+              <Input type="password" placeholder={t("passwordPlaceholder")} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-secondary border-border/60" />
               <Button type="submit" className="w-full h-11 font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {step === "login" ? "Sign In" : "Create Account"}
+                {step === "login" ? t("signIn") : t("createAccount")}
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground mt-4">
               {step === "login" ? (
-                <>Don't have an account?{" "}<button onClick={() => setStep("register")} className="text-primary font-bold hover:underline">Register</button></>
+                <>{t("noAccount")} <button onClick={() => setStep("register")} className="text-primary font-bold hover:underline">{t("register")}</button></>
               ) : (
-                <>Already have an account?{" "}<button onClick={() => setStep("login")} className="text-primary font-bold hover:underline">Sign In</button></>
+                <>{t("haveAccount")} <button onClick={() => setStep("login")} className="text-primary font-bold hover:underline">{t("signIn")}</button></>
               )}
             </p>
           </div>
         )}
       </div>
 
-      <p className="text-center text-[11px] text-muted-foreground pb-6">Protected by ResQHer Security</p>
+      <p className="text-center text-[11px] text-muted-foreground pb-6">{t("protectedBy")}</p>
     </div>
   );
 }

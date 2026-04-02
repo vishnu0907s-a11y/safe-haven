@@ -1,40 +1,42 @@
 import { Home, Map, Bell, Heart, User, LayoutDashboard, Users, BarChart3, Trophy } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   icon: React.ElementType;
-  label: string;
+  labelKey: string;
   path: string;
 }
 
 const womenNav: NavItem[] = [
-  { icon: Home, label: "HOME", path: "/dashboard" },
-  { icon: Map, label: "MAP", path: "/map" },
-  { icon: Heart, label: "SAFETY", path: "/safety" },
-  { icon: Bell, label: "ALERTS", path: "/alerts" },
-  { icon: User, label: "PROFILE", path: "/profile" },
+  { icon: Home, labelKey: "home", path: "/dashboard" },
+  { icon: Map, labelKey: "map", path: "/map" },
+  { icon: Heart, labelKey: "safety", path: "/safety" },
+  { icon: Bell, labelKey: "alerts", path: "/alerts" },
+  { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
 const responderNav: NavItem[] = [
-  { icon: Home, label: "HOME", path: "/dashboard" },
-  { icon: Map, label: "MAP", path: "/map" },
-  { icon: Trophy, label: "POINTS", path: "/points" },
-  { icon: Bell, label: "ALERTS", path: "/alerts" },
-  { icon: User, label: "PROFILE", path: "/profile" },
+  { icon: Home, labelKey: "home", path: "/dashboard" },
+  { icon: Map, labelKey: "map", path: "/map" },
+  { icon: Trophy, labelKey: "points", path: "/points" },
+  { icon: Bell, labelKey: "alerts", path: "/alerts" },
+  { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
 const adminNav: NavItem[] = [
-  { icon: LayoutDashboard, label: "DASHBOARD", path: "/admin" },
-  { icon: Users, label: "USERS", path: "/admin/users" },
-  { icon: Bell, label: "ALERTS", path: "/admin/alerts" },
-  { icon: BarChart3, label: "ANALYTICS", path: "/admin/analytics" },
-  { icon: User, label: "PROFILE", path: "/profile" },
+  { icon: LayoutDashboard, labelKey: "dashboard", path: "/admin" },
+  { icon: Users, labelKey: "users", path: "/admin/users" },
+  { icon: Bell, labelKey: "alerts", path: "/admin/alerts" },
+  { icon: BarChart3, labelKey: "analytics", path: "/admin/analytics" },
+  { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
 export function BottomNav() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -59,7 +61,9 @@ export function BottomNav() {
               )}
             >
               <item.icon className={cn("w-5 h-5", active && "stroke-[2.5px]")} />
-              <span className={cn("text-[9px] font-bold tracking-[0.1em]", active && "text-primary")}>{item.label}</span>
+              <span className={cn("text-[9px] font-bold tracking-[0.1em]", active && "text-primary")}>
+                {t(item.labelKey as any)}
+              </span>
             </button>
           );
         })}
