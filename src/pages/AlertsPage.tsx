@@ -1,5 +1,6 @@
 import { Bell, CheckCircle2, Clock, AlertTriangle, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useI18n } from "@/lib/i18n-context";
 import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ interface PastAlert {
 
 export default function AlertsPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const { alerts: activeAlerts, acceptAlert } = useRealtimeAlerts();
   const [pastAlerts, setPastAlerts] = useState<PastAlert[]>([]);
 
@@ -39,7 +41,7 @@ export default function AlertsPage() {
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           <h2 className="label-caps px-1 mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            Live Emergencies
+            {t("liveEmergencies")}
           </h2>
           <div className="space-y-2">
             {activeAlerts.map((alert) => {
@@ -50,7 +52,7 @@ export default function AlertsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-destructive" />
-                      <span className="text-sm font-bold">Emergency</span>
+                      <span className="text-sm font-bold">{t("emergency")}</span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(alert.created_at).toLocaleTimeString()}
@@ -59,19 +61,19 @@ export default function AlertsPage() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin className="w-3 h-3" />
                     <span>{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
-                    <span className="ml-auto">{accepted.length}/10 responders</span>
+                    <span className="ml-auto">{accepted.length}/10 {t("responders")}</span>
                   </div>
                   {!hasAccepted && user?.role !== "admin" && (
                     <button
                       onClick={() => acceptAlert(alert.id)}
                       className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold active:scale-[0.98]"
                     >
-                      Accept & Respond
+                      {t("acceptRespond")}
                     </button>
                   )}
                   {hasAccepted && (
                     <p className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Accepted
+                      <CheckCircle2 className="w-3 h-3" /> {t("accepted")}
                     </p>
                   )}
                 </div>
@@ -82,11 +84,11 @@ export default function AlertsPage() {
       )}
 
       <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-        <h2 className="label-caps px-1 mb-3">Alert History</h2>
+        <h2 className="label-caps px-1 mb-3">{t("alertHistory")}</h2>
         {pastAlerts.length === 0 ? (
           <div className="glass-card p-6 rounded-2xl text-center">
             <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No past alerts</p>
+            <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -110,7 +112,7 @@ export default function AlertsPage() {
                       {new Date(alert.created_at).toLocaleString()}
                     </span>
                     <span className="text-[10px] text-muted-foreground ml-auto">
-                      {(alert.accepted_by || []).length} responders
+                      {(alert.accepted_by || []).length} {t("responders")}
                     </span>
                   </div>
                 </div>

@@ -1,22 +1,26 @@
 import { useState } from "react";
-import { Heart, Phone, Plus, Trash2, UserPlus, Shield } from "lucide-react";
+import { Heart, Phone, Plus, Trash2, UserPlus, Shield, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
+import { useI18n } from "@/lib/i18n-context";
 import { useEmergencyContacts } from "@/hooks/use-emergency-contacts";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export default function SafetyPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
+  const navigate = useNavigate();
   const { contacts, loading, addContact, removeContact } = useEmergencyContacts();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
   const tips = [
-    "Share your live location with trusted contacts",
-    "Keep emergency numbers on speed dial",
-    "Stay aware of your surroundings",
-    "Use well-lit and populated routes",
+    t("tip1"),
+    t("tip2"),
+    t("tip3"),
+    t("tip4"),
   ];
 
   const handleAdd = async () => {
@@ -31,7 +35,7 @@ export default function SafetyPage() {
 
   return (
     <div className="px-4 space-y-4">
-      <h2 className="label-caps px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">Safety Tips</h2>
+      <h2 className="label-caps px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">{t("safetyTips")}</h2>
 
       <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
         {tips.map((tip, i) => (
@@ -44,17 +48,33 @@ export default function SafetyPage() {
         ))}
       </div>
 
+      {/* Police Station Locator for Women */}
+      {isWomen && (
+        <button
+          onClick={() => navigate("/police-stations")}
+          className="w-full glass-card flex items-center gap-3 p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97] animate-in fade-in slide-in-from-bottom-3 duration-500 delay-120"
+        >
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <MapPin className="w-5 h-5 text-blue-400" />
+          </div>
+          <div className="text-left flex-1">
+            <p className="text-sm font-bold">{t("policeStations")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("nearbyStations")}</p>
+          </div>
+        </button>
+      )}
+
       {/* Emergency Contacts — WOMEN ONLY */}
       {isWomen && (
         <>
           <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
-            <h2 className="label-caps px-1">Emergency Contacts</h2>
+            <h2 className="label-caps px-1">{t("emergencyContacts")}</h2>
             <button
               onClick={() => setShowForm(!showForm)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold active:scale-95 transition-transform"
             >
               <Plus className="w-3.5 h-3.5" />
-              Add
+              {t("add")}
             </button>
           </div>
 
@@ -62,16 +82,16 @@ export default function SafetyPage() {
             <div className="glass-card rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <UserPlus className="w-4 h-4 text-primary" />
-                <p className="text-sm font-bold">New Contact</p>
+                <p className="text-sm font-bold">{t("newContact")}</p>
               </div>
               <Input
-                placeholder="Contact Name"
+                placeholder={t("contactNamePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="h-10 text-sm bg-secondary/50 border-border/40"
               />
               <Input
-                placeholder="Phone Number (with country code)"
+                placeholder={t("phoneWithCountry")}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 type="tel"
@@ -82,20 +102,20 @@ export default function SafetyPage() {
                 disabled={!name.trim() || !phone.trim()}
                 className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
               >
-                Save Contact
+                {t("saveContact")}
               </button>
             </div>
           )}
 
           {loading ? (
             <div className="glass-card p-6 rounded-2xl text-center">
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <p className="text-sm text-muted-foreground">{t("loading")}</p>
             </div>
           ) : contacts.length === 0 ? (
             <div className="glass-card p-8 rounded-2xl text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
               <Phone className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-medium text-muted-foreground">No emergency contacts yet</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Add contacts to send WhatsApp alerts during emergencies</p>
+              <p className="text-sm font-medium text-muted-foreground">{t("noContactsYet")}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{t("addContactsWhatsApp")}</p>
             </div>
           ) : (
             <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
@@ -121,19 +141,19 @@ export default function SafetyPage() {
 
           <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              💡 When you press <span className="font-bold text-destructive">HELP ME</span>, the app will automatically send a WhatsApp message with your live GPS location to all your emergency contacts.
+              💡 {t("helpMeInfo")}
             </p>
           </div>
         </>
       )}
 
-      <h2 className="label-caps px-1 pt-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">Emergency Numbers</h2>
+      <h2 className="label-caps px-1 pt-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">{t("emergencyNumbers")}</h2>
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
         {[
-          { name: "Women Helpline", number: "1091" },
-          { name: "Police", number: "100" },
-          { name: "Ambulance", number: "108" },
-          { name: "Child Helpline", number: "1098" },
+          { name: t("womenHelpline"), number: "1091" },
+          { name: t("police"), number: "100" },
+          { name: t("ambulance"), number: "108" },
+          { name: t("childHelpline"), number: "1098" },
         ].map((item) => (
           <a
             key={item.number}
