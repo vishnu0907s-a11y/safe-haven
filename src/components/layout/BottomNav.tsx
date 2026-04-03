@@ -34,7 +34,11 @@ const adminNav: NavItem[] = [
   { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
-export function BottomNav() {
+interface BottomNavProps {
+  floating?: boolean;
+}
+
+export function BottomNav({ floating }: BottomNavProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
@@ -47,8 +51,13 @@ export function BottomNav() {
     : responderNav;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/40 safe-area-bottom">
-      <div className="flex items-center justify-around py-2 px-2 max-w-lg mx-auto">
+    <nav className={cn(
+      "fixed z-50",
+      floating
+        ? "bottom-5 left-5 right-5 bg-background/80 backdrop-blur-xl rounded-2xl border border-border/30 shadow-xl"
+        : "bottom-0 left-0 right-0 glass-card border-t border-border/40 safe-area-bottom"
+    )}>
+      <div className={cn("flex items-center justify-around py-2 px-2", !floating && "max-w-lg mx-auto")}>
         {items.map((item) => {
           const active = location.pathname === item.path;
           return (
