@@ -17,6 +17,7 @@ import SafetyPage from "@/pages/SafetyPage";
 import PointsPage from "@/pages/PointsPage";
 import EmergencyContactsPage from "@/pages/EmergencyContactsPage";
 import PoliceStationsPage from "@/pages/PoliceStationsPage";
+import RecordPage from "@/pages/RecordPage";
 import NotFound from "@/pages/NotFound";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
