@@ -226,6 +226,7 @@ const translations = {
     dashboard: "DASHBOARD",
     users: "USERS",
     analytics: "ANALYTICS",
+    record: "RECORD",
     
     // Video Recording
     recordVideo: "Record Video",
