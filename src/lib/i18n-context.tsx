@@ -226,6 +226,7 @@ const translations = {
     dashboard: "DASHBOARD",
     users: "USERS",
     analytics: "ANALYTICS",
+    record: "RECORD",
     
     // Video Recording
     recordVideo: "Record Video",
@@ -466,6 +467,7 @@ const translations = {
     dashboard: "டாஷ்போர்டு",
     users: "பயனர்கள்",
     analytics: "பகுப்பாய்வு",
+    record: "பதிவு",
     
     // Video Recording
     recordVideo: "வீடியோ பதிவு",

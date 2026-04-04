@@ -568,10 +568,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Video Recording for Women */}
-      {user.role === "women" && (
-        <VideoRecorder autoStart={autoRecordVideo} />
-      )}
+      {/* Video recording moved to Record tab */}
 
       {/* Responder: Incoming alerts */}
       {isResponder && (

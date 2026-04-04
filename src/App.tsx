@@ -17,6 +17,7 @@ import SafetyPage from "@/pages/SafetyPage";
 import PointsPage from "@/pages/PointsPage";
 import EmergencyContactsPage from "@/pages/EmergencyContactsPage";
 import PoliceStationsPage from "@/pages/PoliceStationsPage";
+import RecordPage from "@/pages/RecordPage";
 import NotFound from "@/pages/NotFound";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="/points" element={<PointsPage />} />
         <Route path="/emergency-contacts" element={<EmergencyContactsPage />} />
         <Route path="/police-stations" element={<PoliceStationsPage />} />
+        <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

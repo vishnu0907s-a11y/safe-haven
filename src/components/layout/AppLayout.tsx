@@ -4,15 +4,15 @@ import { BottomNav } from "./BottomNav";
 
 export function AppLayout() {
   const location = useLocation();
-  const isMapPage = location.pathname === "/map";
+  const isFullScreen = location.pathname === "/map" || location.pathname === "/record";
 
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto relative">
-      {!isMapPage && <AppHeader />}
-      <main className={isMapPage ? "" : "pb-20 pt-3"}>
+      {!isFullScreen && <AppHeader />}
+      <main className={isFullScreen ? "" : "pb-20 pt-3"}>
         <Outlet />
       </main>
-      <BottomNav floating={isMapPage} />
+      <BottomNav floating={isFullScreen} />
     </div>
   );
 }
