@@ -72,6 +72,7 @@ function AppRoutes() {
         <Route path="/points" element={<PointsPage />} />
         <Route path="/emergency-contacts" element={<EmergencyContactsPage />} />
         <Route path="/police-stations" element={<PoliceStationsPage />} />
+        <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
