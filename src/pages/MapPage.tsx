@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, lazy } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZero, SignalLow, Gauge } from "lucide-react";
+import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZero, SignalLow, Gauge, Shield } from "lucide-react";
 import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useDangerZones } from "@/hooks/use-danger-zones";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
 import { useAuth } from "@/lib/auth-context";
+import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -33,6 +34,15 @@ const myLocationIcon = L.divIcon({
   iconAnchor: [15, 15],
 });
 
+const policeIcon = L.divIcon({
+  html: `<div style="background:#3b82f6;width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(59,130,246,0.5);display:flex;align-items:center;justify-content:center;">
+    <span style="font-size:14px;">🚔</span>
+  </div>`,
+  className: "",
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -47,8 +57,17 @@ function getEta(distKm: number) {
   return `~${minutes} min`;
 }
 
+interface PoliceStation {
+  id: number;
+  name: string;
+  lat: number;
+  lon: number;
+  phone?: string;
+}
+
 export default function MapPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const { alerts, acceptAlert } = useRealtimeAlerts();
   const { zones } = useDangerZones();
   const telemetry = useLiveTelemetry();
@@ -58,9 +77,13 @@ export default function MapPage() {
   const alertMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLineRef = useRef<L.Polyline | null>(null);
   const dangerCirclesRef = useRef<L.Circle[]>([]);
+  const policeMarkersRef = useRef<L.Marker[]>([]);
   const [myPos, setMyPos] = useState<[number, number] | null>(null);
   const [trackingAlertId, setTrackingAlertId] = useState<string | null>(null);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showPolice, setShowPolice] = useState(false);
+  const [policeStations, setPoliceStations] = useState<PoliceStation[]>([]);
+  const [loadingPolice, setLoadingPolice] = useState(false);
 
   // Init map
   useEffect(() => {
@@ -149,6 +172,62 @@ export default function MapPage() {
     map.fitBounds(L.latLngBounds([myPos, victimPos]), { padding: [60, 60] });
   }, [trackingAlertId, myPos, alerts]);
 
+  // Police stations toggle
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    // Clear existing police markers
+    policeMarkersRef.current.forEach((m) => map.removeLayer(m));
+    policeMarkersRef.current = [];
+
+    if (!showPolice || policeStations.length === 0) return;
+
+    policeStations.forEach((station) => {
+      const marker = L.marker([station.lat, station.lon], { icon: policeIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family:Inter,sans-serif;min-width:160px;">
+            <p style="font-weight:700;font-size:13px;margin:0 0 6px;">${station.name || "Police Station"}</p>
+            <div style="display:flex;gap:6px;">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}" target="_blank" style="flex:1;text-align:center;padding:6px;background:#eab308;color:#000;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;">${t("getDirections")}</a>
+              ${station.phone ? `<a href="tel:${station.phone}" style="flex:1;text-align:center;padding:6px;background:#3b82f6;color:#fff;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;">${t("callStation")}</a>` : ""}
+            </div>
+          </div>
+        `);
+      policeMarkersRef.current.push(marker);
+    });
+  }, [showPolice, policeStations, t]);
+
+  // Fetch police stations when toggled
+  const fetchPoliceStations = useCallback(async () => {
+    if (!myPos) return;
+    setLoadingPolice(true);
+    try {
+      const [lat, lon] = myPos;
+      const query = `[out:json][timeout:10];node["amenity"="police"](around:5000,${lat},${lon});out body;`;
+      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      const stations: PoliceStation[] = (data.elements || []).map((el: any) => ({
+        id: el.id,
+        name: el.tags?.name || "Police Station",
+        lat: el.lat,
+        lon: el.lon,
+        phone: el.tags?.phone || el.tags?.["contact:phone"],
+      }));
+      setPoliceStations(stations);
+    } catch {
+      setPoliceStations([]);
+    }
+    setLoadingPolice(false);
+  }, [myPos]);
+
+  const togglePolice = () => {
+    const next = !showPolice;
+    setShowPolice(next);
+    if (next && policeStations.length === 0) fetchPoliceStations();
+  };
+
   const handleLocate = () => {
     if (myPos && mapRef.current) mapRef.current.flyTo(myPos, 16, { duration: 1 });
   };
@@ -170,7 +249,6 @@ export default function MapPage() {
 
   return (
     <div className="fixed inset-0 z-0">
-      {/* Full-screen map */}
       <div ref={mapContainerRef} className="absolute inset-0" />
 
       {/* Floating status bar */}
@@ -196,6 +274,30 @@ export default function MapPage() {
         <div className="absolute top-28 left-4 z-[1000] bg-background/70 backdrop-blur-lg rounded-xl border border-border/20 px-3 py-2 flex items-center gap-3">
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-destructive" /><span className="text-[9px] text-muted-foreground">High</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-500" /><span className="text-[9px] text-muted-foreground">Medium</span></div>
+        </div>
+      )}
+
+      {/* FAB - Police Station toggle */}
+      <button
+        onClick={togglePolice}
+        className={cn(
+          "absolute bottom-44 right-5 z-[1000] w-14 h-14 rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-all",
+          showPolice
+            ? "bg-blue-500 text-white"
+            : "bg-primary text-primary-foreground"
+        )}
+      >
+        {loadingPolice ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Shield className="w-6 h-6" />
+        )}
+      </button>
+
+      {/* Police station count badge */}
+      {showPolice && policeStations.length > 0 && (
+        <div className="absolute bottom-[196px] right-5 z-[1000] bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          {policeStations.length} 🚔
         </div>
       )}
 
@@ -237,9 +339,9 @@ export default function MapPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-destructive/15 flex items-center justify-center text-destructive text-sm font-bold shrink-0">!</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">Emergency Alert</p>
+                    <p className="text-sm font-bold text-foreground truncate">{t("emergencyAlert")}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {accepted.length} responding{distText && ` • ${distText}`}{etaText && ` • ETA ${etaText}`}
+                      {accepted.length} {t("responding")}{distText && ` • ${distText}`}{etaText && ` • ETA ${etaText}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">

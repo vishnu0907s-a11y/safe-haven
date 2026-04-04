@@ -1,4 +1,4 @@
-import { Home, Map, Bell, Heart, User, LayoutDashboard, Users, BarChart3, Trophy } from "lucide-react";
+import { Home, Map, Bell, Heart, User, LayoutDashboard, Users, BarChart3, Trophy, Video } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
@@ -13,8 +13,8 @@ interface NavItem {
 const womenNav: NavItem[] = [
   { icon: Home, labelKey: "home", path: "/dashboard" },
   { icon: Map, labelKey: "map", path: "/map" },
+  { icon: Video, labelKey: "record", path: "/record" },
   { icon: Heart, labelKey: "safety", path: "/safety" },
-  { icon: Bell, labelKey: "alerts", path: "/alerts" },
   { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
