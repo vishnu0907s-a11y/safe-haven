@@ -1,4 +1,4 @@
-import { Home, Map, Bell, Heart, User, LayoutDashboard, Users, BarChart3, Trophy, Video } from "lucide-react";
+import { Home, Map, Bell, Heart, User, LayoutDashboard, Users, Video, Trophy, Film } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
@@ -30,7 +30,7 @@ const adminNav: NavItem[] = [
   { icon: LayoutDashboard, labelKey: "dashboard", path: "/admin" },
   { icon: Users, labelKey: "users", path: "/admin/users" },
   { icon: Bell, labelKey: "alerts", path: "/admin/alerts" },
-  { icon: BarChart3, labelKey: "analytics", path: "/admin/analytics" },
+  { icon: Film, labelKey: "evidence", path: "/admin/evidence" },
   { icon: User, labelKey: "profile", path: "/profile" },
 ];
 

@@ -68,8 +68,8 @@ const translations = {
     alertSignal: "Alert Signal",
     helpMe: "HELP ME",
     sending: "SENDING...",
-    sosHoldToActivate: "Hold for 2 seconds to activate",
-    pressToSend: "Hold the SOS button for 2 seconds to send emergency alert via WhatsApp with your live GPS location",
+    sosHoldToActivate: "Hold for 1 second to activate",
+    pressToSend: "Hold the SOS button for 1 second to send emergency alert via WhatsApp with your live GPS location",
     alertActive: "Alert Active",
     responders: "responders",
     imSafeNow: "I'M SAFE NOW",
@@ -227,6 +227,9 @@ const translations = {
     users: "USERS",
     analytics: "ANALYTICS",
     record: "RECORD",
+    evidence: "Evidence",
+    noEvidence: "No evidence videos yet",
+    resolved: "Resolved",
     
     // Video Recording
     recordVideo: "Record Video",
@@ -309,8 +312,8 @@ const translations = {
     alertSignal: "எச்சரிக்கை சமிக்ஞை",
     helpMe: "உதவி",
     sending: "அனுப்புகிறது...",
-    sosHoldToActivate: "செயல்படுத்த 2 வினாடிகள் அழுத்தவும்",
-    pressToSend: "WhatsApp வழியாக உங்கள் நேரடி GPS இருப்பிடத்துடன் அவசர எச்சரிக்கை அனுப்ப SOS பொத்தானை 2 வினாடிகள் அழுத்தவும்",
+    sosHoldToActivate: "செயல்படுத்த 1 வினாடி அழுத்தவும்",
+    pressToSend: "WhatsApp வழியாக உங்கள் நேரடி GPS இருப்பிடத்துடன் அவசர எச்சரிக்கை அனுப்ப SOS பொத்தானை 1 வினாடி அழுத்தவும்",
     alertActive: "எச்சரிக்கை செயலில்",
     responders: "மீட்பர்கள்",
     imSafeNow: "நான் பாதுகாப்பாக இருக்கிறேன்",
@@ -468,6 +471,9 @@ const translations = {
     users: "பயனர்கள்",
     analytics: "பகுப்பாய்வு",
     record: "பதிவு",
+    evidence: "ஆதாரங்கள்",
+    noEvidence: "இன்னும் ஆதார வீடியோக்கள் இல்லை",
+    resolved: "தீர்க்கப்பட்டது",
     
     // Video Recording
     recordVideo: "வீடியோ பதிவு",

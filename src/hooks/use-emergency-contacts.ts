@@ -57,19 +57,18 @@ export function useEmergencyContacts() {
     }
   }, []);
 
-  // WhatsApp-only alert — no confirmation, instant trigger
+  // WhatsApp alert — send to ALL contacts simultaneously
   const sendWhatsAppAlerts = useCallback((latitude: number, longitude: number) => {
     const mapsUrl = `https://maps.google.com/maps?q=${latitude},${longitude}`;
     const message = encodeURIComponent(
       `🚨 Emergency Alert!\n\nI need help immediately.\n\n📍 My live location:\n${mapsUrl}\n\nPlease respond immediately or call emergency services.`
     );
 
-    contacts.forEach((contact, i) => {
+    // Open ALL contacts simultaneously with minimal delay
+    contacts.forEach((contact) => {
       const phone = contact.phone.replace(/[^0-9+]/g, "");
       const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
-      setTimeout(() => {
-        window.open(whatsappUrl, "_blank");
-      }, i * 1500);
+      window.open(whatsappUrl, "_blank");
     });
   }, [contacts]);
 
