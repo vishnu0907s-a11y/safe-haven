@@ -471,6 +471,9 @@ const translations = {
     users: "பயனர்கள்",
     analytics: "பகுப்பாய்வு",
     record: "பதிவு",
+    evidence: "ஆதாரங்கள்",
+    noEvidence: "இன்னும் ஆதார வீடியோக்கள் இல்லை",
+    resolved: "தீர்க்கப்பட்டது",
     
     // Video Recording
     recordVideo: "வீடியோ பதிவு",
