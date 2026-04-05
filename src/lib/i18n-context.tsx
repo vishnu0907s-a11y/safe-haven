@@ -227,6 +227,9 @@ const translations = {
     users: "USERS",
     analytics: "ANALYTICS",
     record: "RECORD",
+    evidence: "Evidence",
+    noEvidence: "No evidence videos yet",
+    resolved: "Resolved",
     
     // Video Recording
     recordVideo: "Record Video",
