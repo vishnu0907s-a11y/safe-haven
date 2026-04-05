@@ -235,109 +235,12 @@ function RescueCompleteScreen({
   );
 }
 
-// Video Recording Component for Women Users
-function VideoRecorder({ autoStart }: { autoStart?: boolean }) {
-  const { t } = useI18n();
-  const { supabaseUser } = useAuth();
-  const [isRecording, setIsRecording] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" });
-        stream.getTracks().forEach((t) => t.stop());
-        await uploadVideo(blob);
-      };
-      recorder.start(1000);
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      toast.error("Camera access denied");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (autoStart) startRecording();
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
-  }, [autoStart]);
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const uploadVideo = async (blob: Blob) => {
-    if (!supabaseUser) return;
-    setUploading(true);
-    const fileName = `${supabaseUser.id}/emergency-${Date.now()}.webm`;
-    const { error } = await supabase.storage.from("videos").upload(fileName, blob);
-    setUploading(false);
-    if (error) {
-      toast.error(t("videoUploadFailed"));
-    } else {
-      toast.success(t("videoSaved"));
-    }
-  };
-
-  return (
-    <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-250">
-      <div className="flex items-center gap-2 mb-3">
-        <Video className="w-4 h-4 text-destructive" />
-        <p className="label-caps">{t("liveVideoRecording")}</p>
-      </div>
-      {isRecording ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-            <span className="text-sm font-bold text-destructive">{t("recordingInProgress")}</span>
-          </div>
-          <button
-            onClick={stopRecording}
-            className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-bold border border-destructive/20 hover:bg-destructive/20 transition-colors active:scale-[0.98]"
-          >
-            {t("stopRecording")}
-          </button>
-        </div>
-      ) : uploading ? (
-        <div className="flex items-center gap-2 py-2">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-muted-foreground">{t("loading")}</span>
-        </div>
-      ) : (
-        <button
-          onClick={startRecording}
-          className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-bold border border-destructive/20 hover:bg-destructive/20 transition-colors active:scale-[0.98] flex items-center justify-center gap-2"
-        >
-          <Video className="w-4 h-4" />
-          {t("startRecording")}
-        </button>
-      )}
-      <p className="text-[10px] text-muted-foreground mt-2">{t("videoNote")}</p>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const { t } = useI18n();
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
   const { alerts, acceptAlert } = useRealtimeAlerts();
-  const { sendWhatsAppAlerts } = useEmergencyContacts();
+  const { contacts, sendWhatsAppAlerts } = useEmergencyContacts();
   const { resolveAlert } = useResolveAlert();
   const [showFeedback, setShowFeedback] = useState(false);
   const [resolvedResponders, setResolvedResponders] = useState<ResponderInfo[]>([]);
@@ -365,6 +268,7 @@ export default function DashboardPage() {
       });
       const { latitude, longitude } = position.coords;
       await sendAlert();
+      // Send to ALL contacts simultaneously
       sendWhatsAppAlerts(latitude, longitude);
     } catch {
       await sendAlert();
@@ -377,7 +281,8 @@ export default function DashboardPage() {
     
     const animate = () => {
       const elapsed = Date.now() - sosStartRef.current;
-      const progress = Math.min(elapsed / 2000, 1);
+      // Changed from 2000ms to 1000ms (1 second)
+      const progress = Math.min(elapsed / 1000, 1);
       setSosProgress(progress);
       
       if (progress >= 1) {
@@ -504,18 +409,18 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="mt-4">
-              {/* Modern SOS Button with Hold-to-Activate */}
+              {/* Modern SOS Button — 1 second hold */}
               <div className="relative w-40 h-40 mx-auto">
-                {/* Pulse rings */}
-                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "radial-gradient(circle, hsl(0 72% 51% / 0.4), transparent 70%)" }} />
-                <div className="absolute inset-[-8px] rounded-full animate-pulse opacity-30" style={{ background: "radial-gradient(circle, hsl(340 80% 55% / 0.3), transparent 70%)" }} />
+                {/* Outer pulse rings */}
+                <div className="absolute inset-[-16px] rounded-full animate-ping opacity-10" style={{ background: "radial-gradient(circle, hsl(0 72% 51% / 0.6), transparent 70%)" }} />
+                <div className="absolute inset-[-8px] rounded-full animate-pulse opacity-20" style={{ background: "radial-gradient(circle, hsl(340 80% 55% / 0.4), transparent 70%)" }} />
                 
                 {/* Progress ring */}
                 <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 160 160">
-                  <circle cx="80" cy="80" r="76" fill="none" stroke="hsl(0 72% 51% / 0.2)" strokeWidth="4" />
+                  <circle cx="80" cy="80" r="76" fill="none" stroke="hsl(0 72% 51% / 0.15)" strokeWidth="5" />
                   <circle
                     cx="80" cy="80" r="76" fill="none"
-                    stroke="url(#sosGradient)" strokeWidth="4"
+                    stroke="url(#sosGradient)" strokeWidth="5"
                     strokeDasharray={`${sosProgress * 477.5} 477.5`}
                     strokeLinecap="round"
                     className="transition-none"
@@ -523,7 +428,8 @@ export default function DashboardPage() {
                   <defs>
                     <linearGradient id="sosGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="hsl(0, 72%, 51%)" />
-                      <stop offset="100%" stopColor="hsl(340, 80%, 55%)" />
+                      <stop offset="50%" stopColor="hsl(340, 80%, 55%)" />
+                      <stop offset="100%" stopColor="hsl(43, 96%, 56%)" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -546,7 +452,7 @@ export default function DashboardPage() {
                   style={{
                     background: "linear-gradient(135deg, hsl(0, 72%, 51%), hsl(340, 80%, 55%))",
                     boxShadow: sosHolding
-                      ? "0 0 40px hsl(0 72% 51% / 0.5), 0 0 80px hsl(340 80% 55% / 0.3), inset 0 0 20px hsl(0 0% 0% / 0.2)"
+                      ? "0 0 50px hsl(0 72% 51% / 0.6), 0 0 100px hsl(340 80% 55% / 0.4), inset 0 0 20px hsl(0 0% 0% / 0.2)"
                       : "0 0 30px hsl(0 72% 51% / 0.3), 0 0 60px hsl(0 72% 51% / 0.1)",
                   }}
                 >
@@ -567,8 +473,6 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
-
-      {/* Video recording moved to Record tab */}
 
       {/* Responder: Incoming alerts */}
       {isResponder && (

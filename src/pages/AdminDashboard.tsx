@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X } from "lucide-react";
+import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Play, Filter } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,26 @@ interface OnDutyRescuer {
   role?: string;
 }
 
+interface EvidenceItem {
+  name: string;
+  created_at: string;
+  user_id: string;
+  user_name?: string;
+  url: string;
+}
+
+interface AlertWithUser {
+  id: string;
+  status: string;
+  created_at: string;
+  latitude: number;
+  longitude: number;
+  accepted_by: string[] | null;
+  user_id: string;
+  user_name?: string;
+  avatar_url?: string | null;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -40,17 +60,32 @@ export default function AdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [viewingProof, setViewingProof] = useState<UserRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [tab, setTab] = useState<"users" | "onduty">("users");
+  const [tab, setTab] = useState<"users" | "onduty" | "evidence" | "alerts">("users");
+
+  // Evidence state
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
+  const [loadingEvidence, setLoadingEvidence] = useState(false);
+  const [evidenceFilter, setEvidenceFilter] = useState<string>("all");
+
+  // Alerts state
+  const [adminAlerts, setAdminAlerts] = useState<AlertWithUser[]>([]);
+  const [alertFilter, setAlertFilter] = useState<"all" | "active" | "resolved">("all");
 
   useEffect(() => {
     fetchUsers();
     fetchOnDuty();
     fetchStats();
+    fetchEvidence();
+    fetchAlerts();
 
     const channel = supabase
       .channel("admin-attendance-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => {
         fetchOnDuty();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => {
+        fetchAlerts();
+        fetchStats();
       })
       .subscribe();
 
@@ -114,6 +149,83 @@ export default function AdminDashboard() {
     setStats({ total: total || 0, active: activeAlerts || 0, verified: verified || 0 });
   };
 
+  const fetchEvidence = async () => {
+    setLoadingEvidence(true);
+    try {
+      const { data: files, error } = await supabase.storage.from("videos").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+      
+      if (error || !files) {
+        setEvidence([]);
+        setLoadingEvidence(false);
+        return;
+      }
+
+      // List files inside each user folder
+      const allEvidence: EvidenceItem[] = [];
+      const folderNames = files.filter(f => !f.name.includes('.')).map(f => f.name);
+      
+      for (const folder of folderNames) {
+        const { data: userFiles } = await supabase.storage.from("videos").list(folder, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+        if (userFiles) {
+          for (const file of userFiles) {
+            if (file.name.includes('.')) {
+              const { data: urlData } = supabase.storage.from("videos").getPublicUrl(`${folder}/${file.name}`);
+              allEvidence.push({
+                name: file.name,
+                created_at: file.created_at || new Date().toISOString(),
+                user_id: folder,
+                url: urlData?.publicUrl || "",
+              });
+            }
+          }
+        }
+      }
+
+      // Enrich with user names
+      const uniqueUserIds = [...new Set(allEvidence.map(e => e.user_id))];
+      if (uniqueUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", uniqueUserIds);
+        
+        allEvidence.forEach(e => {
+          e.user_name = profiles?.find(p => p.user_id === e.user_id)?.full_name || "Unknown User";
+        });
+      }
+
+      setEvidence(allEvidence);
+    } catch {
+      setEvidence([]);
+    }
+    setLoadingEvidence(false);
+  };
+
+  const fetchAlerts = async () => {
+    const { data } = await supabase
+      .from("emergency_alerts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map(a => a.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", userIds);
+
+      const enriched: AlertWithUser[] = data.map(a => ({
+        ...a,
+        user_name: profiles?.find(p => p.user_id === a.user_id)?.full_name || "Unknown",
+        avatar_url: profiles?.find(p => p.user_id === a.user_id)?.avatar_url || null,
+      }));
+      setAdminAlerts(enriched);
+    } else {
+      setAdminAlerts(data?.map(a => ({ ...a, user_name: "Unknown", avatar_url: null })) || []);
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     const { error } = await supabase.from("profiles").delete().eq("user_id", userId);
     if (error) {
@@ -159,6 +271,12 @@ export default function AdminDashboard() {
     return matchSearch && matchFilter;
   });
 
+  const filteredAlerts = adminAlerts.filter(a => {
+    if (alertFilter === "active") return a.status === "active";
+    if (alertFilter === "resolved") return a.status === "resolved";
+    return true;
+  });
+
   const statCards = [
     { label: t("totalUsers"), value: stats.total, icon: Users, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
     { label: t("activeAlerts"), value: stats.active, icon: AlertTriangle, color: "bg-red-500/10 text-red-600 dark:text-red-400" },
@@ -184,7 +302,7 @@ export default function AdminDashboard() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
         {statCards.map((stat) => (
-          <div key={stat.label} className="p-3.5 rounded-xl bg-card border">
+          <div key={stat.label} className="p-3.5 rounded-xl bg-card border hover:shadow-md transition-shadow">
             <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-2", stat.color)}>
               <stat.icon className="w-4 h-4" />
             </div>
@@ -194,28 +312,23 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Tab switcher */}
-      <div className="flex gap-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
-        <button
-          onClick={() => setTab("users")}
-          className={cn(
-            "flex-1 py-2 rounded-xl text-sm font-bold transition-colors",
-            tab === "users" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-          )}
-        >
-          {t("allUsers")}
-        </button>
-        <button
-          onClick={() => setTab("onduty")}
-          className={cn(
-            "flex-1 py-2 rounded-xl text-sm font-bold transition-colors",
-            tab === "onduty" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-          )}
-        >
-          {t("onDutyRescuers")} ({onDutyRescuers.length})
-        </button>
+      {/* Tab switcher — 4 tabs */}
+      <div className="grid grid-cols-4 gap-1.5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
+        {(["users", "onduty", "alerts", "evidence"] as const).map((t_tab) => (
+          <button
+            key={t_tab}
+            onClick={() => setTab(t_tab)}
+            className={cn(
+              "py-2 rounded-xl text-[11px] font-bold transition-colors",
+              tab === t_tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+            )}
+          >
+            {t_tab === "users" ? t("allUsers") : t_tab === "onduty" ? t("onDutyRescuers") : t_tab === "alerts" ? t("alerts") : t("evidence")}
+          </button>
+        ))}
       </div>
 
+      {/* USERS TAB */}
       {tab === "users" && (
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
           <div className="relative mb-3">
@@ -267,37 +380,20 @@ export default function AdminDashboard() {
                     {u.verification_status}
                   </span>
                   <div className="flex gap-1">
-                    {/* Approve/Reject buttons */}
                     {u.verification_status === "pending" && (
                       <>
-                        <button
-                          onClick={() => handleApproveUser(u.user_id)}
-                          className="p-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors active:scale-95"
-                          title={t("approve")}
-                        >
+                        <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors active:scale-95" title={t("approve")}>
                           <Check className="w-3.5 h-3.5 text-emerald-500" />
                         </button>
-                        <button
-                          onClick={() => handleRejectUser(u.user_id)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors active:scale-95"
-                          title={t("reject")}
-                        >
+                        <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors active:scale-95" title={t("reject")}>
                           <X className="w-3.5 h-3.5 text-red-500" />
                         </button>
                       </>
                     )}
-                    <button
-                      onClick={() => setViewingProof(u)}
-                      className="p-1.5 rounded-lg hover:bg-secondary transition-colors active:scale-95"
-                      title={t("userDetails")}
-                    >
+                    <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors active:scale-95" title={t("userDetails")}>
                       <Eye className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
-                    <button
-                      onClick={() => setDeleteConfirm(u.user_id)}
-                      className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors active:scale-95"
-                      title={t("delete")}
-                    >
+                    <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors active:scale-95" title={t("delete")}>
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </button>
                   </div>
@@ -308,6 +404,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* ON-DUTY TAB */}
       {tab === "onduty" && (
         <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
           {onDutyRescuers.length === 0 ? (
@@ -340,6 +437,128 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* ALERTS TAB — with user names */}
+      {tab === "alerts" && (
+        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+          <div className="flex gap-2 mb-2">
+            {(["all", "active", "resolved"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setAlertFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-bold transition-colors",
+                  alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}
+              >
+                {f === "all" ? t("all") : f === "active" ? t("active") : t("resolved")}
+              </button>
+            ))}
+          </div>
+
+          {filteredAlerts.length === 0 ? (
+            <div className="glass-card p-8 rounded-2xl text-center">
+              <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+              <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
+            </div>
+          ) : (
+            filteredAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={cn(
+                  "p-4 rounded-2xl border transition-all",
+                  alert.status === "active"
+                    ? "bg-destructive/5 border-destructive/30 shadow-[0_0_15px_hsl(0_72%_51%/0.15)]"
+                    : "bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_15px_hsl(145_63%_42%/0.1)]"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Avatar */}
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
+                    alert.status === "active"
+                      ? "bg-destructive/10 text-destructive border border-destructive/20"
+                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                  )}>
+                    {alert.user_name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{alert.user_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={cn(
+                      "text-[9px] font-bold px-2 py-0.5 rounded-full",
+                      alert.status === "active"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-emerald-500/15 text-emerald-500"
+                    )}>
+                      {alert.status === "active" ? "🔴 " + t("active") : "🟢 " + t("resolved")}
+                    </span>
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      {new Date(alert.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>{(alert.accepted_by || []).length} {t("responders")}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* EVIDENCE TAB */}
+      {tab === "evidence" && (
+        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+          {loadingEvidence ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
+          ) : evidence.length === 0 ? (
+            <div className="glass-card p-8 rounded-2xl text-center">
+              <Video className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+              <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
+            </div>
+          ) : (
+            evidence.map((item, i) => (
+              <div key={i} className="p-4 rounded-2xl bg-card border space-y-3 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20">
+                    <Video className="w-4 h-4 text-destructive" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{item.user_name || "Unknown"}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors active:scale-95"
+                    title="Download"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                </div>
+                <video
+                  src={item.url}
+                  controls
+                  className="w-full rounded-xl bg-black/50 max-h-48"
+                  preload="metadata"
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
       {/* View proof modal */}
       {viewingProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewingProof(null)}>
@@ -353,7 +572,6 @@ export default function AdminDashboard() {
               <p><span className="text-muted-foreground">{t("status")}:</span> <span className="capitalize">{viewingProof.verification_status}</span></p>
             </div>
 
-            {/* Approve/Reject in modal */}
             {viewingProof.verification_status === "pending" && (
               <div className="flex gap-2">
                 <button
