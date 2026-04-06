@@ -565,7 +565,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
             </div>
           ) : (
-            evidence.map((item, i) => (
+            filteredEvidence.map((item, i) => (
               <div key={i} className="p-4 rounded-2xl bg-card border space-y-3 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20">
