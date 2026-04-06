@@ -66,6 +66,9 @@ export default function AdminDashboard() {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState<string>("all");
+  const [evidenceSearch, setEvidenceSearch] = useState("");
+  const [evidenceDateFrom, setEvidenceDateFrom] = useState("");
+  const [evidenceDateTo, setEvidenceDateTo] = useState("");
 
   // Alerts state
   const [adminAlerts, setAdminAlerts] = useState<AlertWithUser[]>([]);
