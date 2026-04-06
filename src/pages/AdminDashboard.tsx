@@ -597,7 +597,8 @@ export default function AdminDashboard() {
             ))
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* View proof modal */}
       {viewingProof && (
