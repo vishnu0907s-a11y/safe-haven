@@ -66,6 +66,9 @@ export default function AdminDashboard() {
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState<string>("all");
+  const [evidenceSearch, setEvidenceSearch] = useState("");
+  const [evidenceDateFrom, setEvidenceDateFrom] = useState("");
+  const [evidenceDateTo, setEvidenceDateTo] = useState("");
 
   // Alerts state
   const [adminAlerts, setAdminAlerts] = useState<AlertWithUser[]>([]);
@@ -515,17 +518,54 @@ export default function AdminDashboard() {
       )}
 
       {/* EVIDENCE TAB */}
-      {tab === "evidence" && (
+      {tab === "evidence" && (() => {
+        const filteredEvidence = evidence.filter(item => {
+          const matchSearch = !evidenceSearch || (item.user_name || "").toLowerCase().includes(evidenceSearch.toLowerCase()) || item.name.toLowerCase().includes(evidenceSearch.toLowerCase());
+          const itemDate = new Date(item.created_at);
+          const matchFrom = !evidenceDateFrom || itemDate >= new Date(evidenceDateFrom);
+          const matchTo = !evidenceDateTo || itemDate <= new Date(evidenceDateTo + "T23:59:59");
+          return matchSearch && matchFrom && matchTo;
+        });
+        return (
         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+          {/* Search & Date Filters */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by user name..."
+                value={evidenceSearch}
+                onChange={(e) => setEvidenceSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground font-bold mb-0.5 block">From</label>
+                <Input type="date" value={evidenceDateFrom} onChange={(e) => setEvidenceDateFrom(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground font-bold mb-0.5 block">To</label>
+                <Input type="date" value={evidenceDateTo} onChange={(e) => setEvidenceDateTo(e.target.value)} className="h-8 text-xs" />
+              </div>
+              {(evidenceDateFrom || evidenceDateTo || evidenceSearch) && (
+                <button onClick={() => { setEvidenceSearch(""); setEvidenceDateFrom(""); setEvidenceDateTo(""); }} className="self-end p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors h-8 px-2 text-[10px] font-bold">
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground">{filteredEvidence.length} result(s)</p>
+          </div>
+
           {loadingEvidence ? (
             <div className="p-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
-          ) : evidence.length === 0 ? (
+          ) : filteredEvidence.length === 0 ? (
             <div className="glass-card p-8 rounded-2xl text-center">
               <Video className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
               <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
             </div>
           ) : (
-            evidence.map((item, i) => (
+            filteredEvidence.map((item, i) => (
               <div key={i} className="p-4 rounded-2xl bg-card border space-y-3 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20">
@@ -557,7 +597,8 @@ export default function AdminDashboard() {
             ))
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* View proof modal */}
       {viewingProof && (
