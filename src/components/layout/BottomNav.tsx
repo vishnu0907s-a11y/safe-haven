@@ -4,11 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
-  icon: React.ElementType;
-  labelKey: string;
-  path: string;
-}
+interface NavItem { icon: React.ElementType; labelKey: string; path: string; }
 
 const womenNav: NavItem[] = [
   { icon: Home, labelKey: "home", path: "/dashboard" },
@@ -34,9 +30,7 @@ const adminNav: NavItem[] = [
   { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
-interface BottomNavProps {
-  floating?: boolean;
-}
+interface BottomNavProps { floating?: boolean; }
 
 export function BottomNav({ floating }: BottomNavProps) {
   const { user } = useAuth();
@@ -44,18 +38,14 @@ export function BottomNav({ floating }: BottomNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const items = user?.role === "admin"
-    ? adminNav
-    : user?.role === "women"
-    ? womenNav
-    : responderNav;
+  const items = user?.role === "admin" ? adminNav : user?.role === "women" ? womenNav : responderNav;
 
   return (
     <nav className={cn(
       "fixed z-50",
       floating
-        ? "bottom-5 left-5 right-5 bg-background/80 backdrop-blur-xl rounded-2xl border border-border/30 shadow-xl"
-        : "bottom-0 left-0 right-0 glass-card border-t border-border/40 safe-area-bottom"
+        ? "bottom-4 left-4 right-4 bg-card/90 backdrop-blur-xl rounded-2xl border shadow-lg"
+        : "bottom-0 left-0 right-0 bg-card/95 backdrop-blur-xl border-t safe-area-bottom"
     )}>
       <div className={cn("flex items-center justify-around py-2 px-2", !floating && "max-w-lg mx-auto")}>
         {items.map((item) => {
@@ -66,11 +56,11 @@ export function BottomNav({ floating }: BottomNavProps) {
               onClick={() => navigate(item.path)}
               className={cn(
                 "flex flex-col items-center gap-1 py-1.5 px-3 rounded-xl transition-all active:scale-95",
-                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                active ? "text-primary" : "text-muted-foreground"
               )}
             >
               <item.icon className={cn("w-5 h-5", active && "stroke-[2.5px]")} />
-              <span className={cn("text-[9px] font-bold tracking-[0.1em]", active && "text-primary")}>
+              <span className={cn("text-[9px] font-semibold tracking-[0.08em]", active && "text-primary")}>
                 {t(item.labelKey as any)}
               </span>
             </button>

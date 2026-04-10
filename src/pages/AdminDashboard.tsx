@@ -1,52 +1,31 @@
 import { useState, useEffect } from "react";
-import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Play, Filter } from "lucide-react";
+import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 interface UserRow {
-  id: string;
-  user_id: string;
-  full_name: string;
-  phone: string | null;
-  city: string | null;
-  verification_status: string;
-  aadhaar_url: string | null;
-  driving_license_url: string | null;
-  role?: string;
+  id: string; user_id: string; full_name: string; phone: string | null;
+  city: string | null; verification_status: string;
+  aadhaar_url: string | null; driving_license_url: string | null; role?: string;
 }
-
 interface OnDutyRescuer {
-  id: string;
-  user_id: string;
-  checked_in_at: string;
-  latitude: number | null;
-  longitude: number | null;
-  full_name?: string;
-  role?: string;
+  id: string; user_id: string; checked_in_at: string;
+  latitude: number | null; longitude: number | null;
+  full_name?: string; role?: string;
 }
-
 interface EvidenceItem {
-  name: string;
-  created_at: string;
-  user_id: string;
-  user_name?: string;
-  url: string;
+  name: string; created_at: string; user_id: string; user_name?: string; url: string;
 }
-
 interface AlertWithUser {
-  id: string;
-  status: string;
-  created_at: string;
-  latitude: number;
-  longitude: number;
-  accepted_by: string[] | null;
-  user_id: string;
-  user_name?: string;
-  avatar_url?: string | null;
+  id: string; status: string; created_at: string; latitude: number; longitude: number;
+  accepted_by: string[] | null; user_id: string; user_name?: string; avatar_url?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -58,91 +37,45 @@ export default function AdminDashboard() {
   const [onDutyRescuers, setOnDutyRescuers] = useState<OnDutyRescuer[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, verified: 0 });
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [viewingProof, setViewingProof] = useState<UserRow | null>(null);
+  const [viewingProof, setViewingProof] = useState<UserRow | null>(false as any);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [tab, setTab] = useState<"users" | "onduty" | "evidence" | "alerts">("users");
+  const [tab, setTab] = useState<"overview" | "users" | "onduty" | "evidence" | "alerts">("overview");
 
-  // Evidence state
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
-  const [evidenceFilter, setEvidenceFilter] = useState<string>("all");
   const [evidenceSearch, setEvidenceSearch] = useState("");
   const [evidenceDateFrom, setEvidenceDateFrom] = useState("");
   const [evidenceDateTo, setEvidenceDateTo] = useState("");
 
-  // Alerts state
   const [adminAlerts, setAdminAlerts] = useState<AlertWithUser[]>([]);
   const [alertFilter, setAlertFilter] = useState<"all" | "active" | "resolved">("all");
 
   useEffect(() => {
-    fetchUsers();
-    fetchOnDuty();
-    fetchStats();
-    fetchEvidence();
-    fetchAlerts();
-
+    fetchUsers(); fetchOnDuty(); fetchStats(); fetchEvidence(); fetchAlerts();
     const channel = supabase
-      .channel("admin-attendance-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => {
-        fetchOnDuty();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => {
-        fetchAlerts();
-        fetchStats();
-      })
+      .channel("admin-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => fetchOnDuty())
+      .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => { fetchAlerts(); fetchStats(); })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchUsers = async () => {
     setLoadingUsers(true);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-    
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id, role");
-    
-    if (profiles) {
-      const merged = profiles.map((p) => ({
-        ...p,
-        role: roles?.find((r) => r.user_id === p.user_id)?.role || "unknown",
-      }));
-      setUsers(merged);
-    }
+    const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    if (profiles) setUsers(profiles.map((p) => ({ ...p, role: roles?.find((r) => r.user_id === p.user_id)?.role || "unknown" })));
     setLoadingUsers(false);
   };
 
   const fetchOnDuty = async () => {
-    const { data: shifts } = await supabase
-      .from("attendance")
-      .select("*")
-      .eq("status", "active")
-      .order("checked_in_at", { ascending: false });
-
+    const { data: shifts } = await supabase.from("attendance").select("*").eq("status", "active").order("checked_in_at", { ascending: false });
     if (shifts && shifts.length > 0) {
-      const userIds = shifts.map((s) => s.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id, role")
-        .in("user_id", userIds);
-      
-      const enriched: OnDutyRescuer[] = shifts.map((s) => ({
-        ...s,
-        full_name: profiles?.find((p) => p.user_id === s.user_id)?.full_name || "Unknown",
-        role: roles?.find((r) => r.user_id === s.user_id)?.role || "responder",
-      }));
-      setOnDutyRescuers(enriched);
-    } else {
-      setOnDutyRescuers([]);
-    }
+      const ids = shifts.map((s) => s.user_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
+      const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", ids);
+      setOnDutyRescuers(shifts.map((s) => ({ ...s, full_name: profiles?.find((p) => p.user_id === s.user_id)?.full_name || "Unknown", role: roles?.find((r) => r.user_id === s.user_id)?.role || "responder" })));
+    } else setOnDutyRescuers([]);
   };
 
   const fetchStats = async () => {
@@ -155,250 +88,209 @@ export default function AdminDashboard() {
   const fetchEvidence = async () => {
     setLoadingEvidence(true);
     try {
-      const { data: files, error } = await supabase.storage.from("videos").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      
-      if (error || !files) {
-        setEvidence([]);
-        setLoadingEvidence(false);
-        return;
-      }
-
-      // List files inside each user folder
+      const { data: files } = await supabase.storage.from("videos").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+      if (!files) { setEvidence([]); setLoadingEvidence(false); return; }
       const allEvidence: EvidenceItem[] = [];
-      const folderNames = files.filter(f => !f.name.includes('.')).map(f => f.name);
-      
-      for (const folder of folderNames) {
+      const folders = files.filter(f => !f.name.includes('.')).map(f => f.name);
+      for (const folder of folders) {
         const { data: userFiles } = await supabase.storage.from("videos").list(folder, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
         if (userFiles) {
           for (const file of userFiles) {
             if (file.name.includes('.')) {
               const { data: urlData } = supabase.storage.from("videos").getPublicUrl(`${folder}/${file.name}`);
-              allEvidence.push({
-                name: file.name,
-                created_at: file.created_at || new Date().toISOString(),
-                user_id: folder,
-                url: urlData?.publicUrl || "",
-              });
+              allEvidence.push({ name: file.name, created_at: file.created_at || new Date().toISOString(), user_id: folder, url: urlData?.publicUrl || "" });
             }
           }
         }
       }
-
-      // Enrich with user names
-      const uniqueUserIds = [...new Set(allEvidence.map(e => e.user_id))];
-      if (uniqueUserIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", uniqueUserIds);
-        
-        allEvidence.forEach(e => {
-          e.user_name = profiles?.find(p => p.user_id === e.user_id)?.full_name || "Unknown User";
-        });
+      const uids = [...new Set(allEvidence.map(e => e.user_id))];
+      if (uids.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", uids);
+        allEvidence.forEach(e => { e.user_name = profiles?.find(p => p.user_id === e.user_id)?.full_name || "Unknown"; });
       }
-
       setEvidence(allEvidence);
-    } catch {
-      setEvidence([]);
-    }
+    } catch { setEvidence([]); }
     setLoadingEvidence(false);
   };
 
   const fetchAlerts = async () => {
-    const { data } = await supabase
-      .from("emergency_alerts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
+    const { data } = await supabase.from("emergency_alerts").select("*").order("created_at", { ascending: false }).limit(50);
     if (data && data.length > 0) {
-      const userIds = [...new Set(data.map(a => a.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url")
-        .in("user_id", userIds);
-
-      const enriched: AlertWithUser[] = data.map(a => ({
-        ...a,
-        user_name: profiles?.find(p => p.user_id === a.user_id)?.full_name || "Unknown",
-        avatar_url: profiles?.find(p => p.user_id === a.user_id)?.avatar_url || null,
-      }));
-      setAdminAlerts(enriched);
-    } else {
-      setAdminAlerts(data?.map(a => ({ ...a, user_name: "Unknown", avatar_url: null })) || []);
-    }
+      const uids = [...new Set(data.map(a => a.user_id))];
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", uids);
+      setAdminAlerts(data.map(a => ({ ...a, user_name: profiles?.find(p => p.user_id === a.user_id)?.full_name || "Unknown", avatar_url: profiles?.find(p => p.user_id === a.user_id)?.avatar_url || null })));
+    } else setAdminAlerts([]);
   };
 
   const handleDeleteUser = async (userId: string) => {
     const { error } = await supabase.from("profiles").delete().eq("user_id", userId);
-    if (error) {
-      toast.error(t("deleteFailed"));
-    } else {
-      toast.success(t("userRemoved"));
-      setUsers((prev) => prev.filter((u) => u.user_id !== userId));
-      setDeleteConfirm(null);
-    }
+    if (error) toast.error(t("deleteFailed"));
+    else { toast.success(t("userRemoved")); setUsers((prev) => prev.filter((u) => u.user_id !== userId)); setDeleteConfirm(null); }
   };
-
   const handleApproveUser = async (userId: string) => {
     const { error } = await supabase.from("profiles").update({ verification_status: "verified" as any }).eq("user_id", userId);
-    if (error) {
-      toast.error(t("approvalFailed"));
-    } else {
-      toast.success(t("userApproved"));
-      setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u));
-      fetchStats();
-    }
+    if (error) toast.error(t("approvalFailed"));
+    else { toast.success(t("userApproved")); setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u)); fetchStats(); }
   };
-
   const handleRejectUser = async (userId: string) => {
     const { error } = await supabase.from("profiles").update({ verification_status: "rejected" as any }).eq("user_id", userId);
-    if (error) {
-      toast.error(t("approvalFailed"));
-    } else {
-      toast.success(t("userRejected"));
-      setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u));
-      fetchStats();
-    }
+    if (error) toast.error(t("approvalFailed"));
+    else { toast.success(t("userRejected")); setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u)); fetchStats(); }
   };
 
   const getProofUrl = (path: string | null) => {
     if (!path) return null;
-    const { data } = supabase.storage.from("documents").getPublicUrl(path);
-    return data?.publicUrl || null;
+    return supabase.storage.from("documents").getPublicUrl(path).data?.publicUrl || null;
   };
 
   const filtered = users.filter((u) => {
-    const matchSearch = u.full_name.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all" || u.role === filter || u.verification_status === filter;
-    return matchSearch && matchFilter;
+    const ms = u.full_name.toLowerCase().includes(search.toLowerCase());
+    const mf = filter === "all" || u.role === filter || u.verification_status === filter;
+    return ms && mf;
   });
-
-  const filteredAlerts = adminAlerts.filter(a => {
-    if (alertFilter === "active") return a.status === "active";
-    if (alertFilter === "resolved") return a.status === "resolved";
-    return true;
-  });
+  const filteredAlerts = adminAlerts.filter(a => alertFilter === "all" || a.status === alertFilter);
 
   const statCards = [
-    { label: t("totalUsers"), value: stats.total, icon: Users, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-    { label: t("activeAlerts"), value: stats.active, icon: AlertTriangle, color: "bg-red-500/10 text-red-600 dark:text-red-400" },
-    { label: t("verified"), value: stats.verified, icon: CheckCircle2, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { label: t("onDuty"), value: onDutyRescuers.length, icon: Shield, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    { label: t("totalUsers"), value: stats.total, icon: Users, color: "text-primary" },
+    { label: t("activeAlerts"), value: stats.active, icon: AlertTriangle, color: "text-destructive" },
+    { label: t("verified"), value: stats.verified, icon: CheckCircle2, color: "text-accent" },
+    { label: t("onDuty"), value: onDutyRescuers.length, icon: Shield, color: "text-warning" },
   ];
 
   if (!user) return null;
 
   return (
-    <div className="px-4 space-y-4">
-      {/* Admin profile */}
-      <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+    <div className="px-4 space-y-4 pb-4">
+      {/* Admin header */}
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border animate-in fade-in duration-300">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
           {user.full_name.charAt(0)}
         </div>
         <div>
-          <p className="font-semibold">{user.full_name}</p>
-          <p className="text-xs text-muted-foreground">{t("administrator")}</p>
+          <p className="font-semibold text-sm">{user.full_name}</p>
+          <p className="text-[10px] text-muted-foreground">{t("administrator")}</p>
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="p-3.5 rounded-xl bg-card border hover:shadow-md transition-shadow">
-            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-2", stat.color)}>
-              <stat.icon className="w-4 h-4" />
-            </div>
-            <p className="text-xl font-bold tabular-nums">{stat.value}</p>
-            <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {statCards.map((s) => (
+          <div key={s.label} className="p-3 rounded-xl bg-card border">
+            <s.icon className={cn("w-4 h-4 mb-1.5", s.color)} />
+            <p className="text-xl font-bold">{s.value}</p>
+            <p className="text-[10px] text-muted-foreground">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Tab switcher — 4 tabs */}
-      <div className="grid grid-cols-4 gap-1.5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
-        {(["users", "onduty", "alerts", "evidence"] as const).map((t_tab) => (
+      {/* Tabs */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        {(["overview", "users", "alerts", "evidence"] as const).map((t_tab) => (
           <button
             key={t_tab}
             onClick={() => setTab(t_tab)}
             className={cn(
-              "py-2 rounded-xl text-[11px] font-bold transition-colors",
+              "px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors",
               tab === t_tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
             )}
           >
-            {t_tab === "users" ? t("allUsers") : t_tab === "onduty" ? t("onDutyRescuers") : t_tab === "alerts" ? t("alerts") : t("evidence")}
+            {t_tab === "overview" ? "Overview" : t_tab === "users" ? t("allUsers") : t_tab === "alerts" ? t("alerts") : t("evidence")}
           </button>
         ))}
       </div>
 
-      {/* USERS TAB */}
-      {tab === "users" && (
-        <div className="animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={t("searchUsers")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9 text-sm"
-            />
+      {/* OVERVIEW TAB — stats only, no user/evidence lists */}
+      {tab === "overview" && (
+        <div className="space-y-3">
+          {/* On-duty rescuers summary */}
+          <div className="p-4 rounded-xl bg-card border">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-4 h-4 text-accent" />
+              <p className="text-sm font-semibold">{t("onDutyRescuers")}</p>
+              <span className="ml-auto text-xs font-bold text-accent">{onDutyRescuers.length}</span>
+            </div>
+            {onDutyRescuers.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("noRescuersOnDuty")}</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {onDutyRescuers.slice(0, 6).map((r) => (
+                  <div key={r.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary text-xs">
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    <span className="font-medium truncate max-w-[80px]">{r.full_name}</span>
+                  </div>
+                ))}
+                {onDutyRescuers.length > 6 && (
+                  <span className="text-xs text-muted-foreground self-center">+{onDutyRescuers.length - 6} more</span>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
-            {["all", "women", "driver", "police", "protector", "verified", "pending"].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-                  filter === f
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
+          {/* Recent alerts summary */}
+          <div className="p-4 rounded-xl bg-card border">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              <p className="text-sm font-semibold">{t("alerts")}</p>
+            </div>
+            {adminAlerts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{t("noPastAlerts")}</p>
+            ) : (
+              <div className="space-y-2">
+                {adminAlerts.slice(0, 3).map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 text-xs">
+                    <div className={cn("w-2 h-2 rounded-full", a.status === "active" ? "bg-destructive" : "bg-accent")} />
+                    <span className="font-medium truncate flex-1">{a.user_name}</span>
+                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {adminAlerts.length > 3 && (
+                  <button onClick={() => setTab("alerts")} className="text-xs text-primary font-medium">View all →</button>
                 )}
-              >
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* USERS TAB */}
+      {tab === "users" && (
+        <div>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder={t("searchUsers")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+          </div>
+          <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 no-scrollbar">
+            {["all", "women", "driver", "police", "protector", "verified", "pending"].map((f) => (
+              <button key={f} onClick={() => setFilter(f)} className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap", filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
               </button>
             ))}
           </div>
-
           {loadingUsers ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
+            <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
           ) : (
             <div className="space-y-2">
               {filtered.map((u) => (
-                <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border hover:shadow-sm transition-shadow">
-                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-semibold">
-                    {u.full_name.charAt(0)}
-                  </div>
+                <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border">
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold">{u.full_name.charAt(0)}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{u.full_name}</p>
                     <p className="text-[10px] text-muted-foreground capitalize">{u.role} • {u.city || "N/A"}</p>
                   </div>
-                  <span className={cn(
-                    "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                    u.verification_status === "verified" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-                    u.verification_status === "pending" && "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                    u.verification_status === "rejected" && "bg-red-500/10 text-red-600 dark:text-red-400",
-                  )}>
-                    {u.verification_status}
-                  </span>
-                  <div className="flex gap-1">
+                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full",
+                    u.verification_status === "verified" && "bg-accent/10 text-accent",
+                    u.verification_status === "pending" && "bg-warning/10 text-warning",
+                    u.verification_status === "rejected" && "bg-destructive/10 text-destructive",
+                  )}>{u.verification_status}</span>
+                  <div className="flex gap-0.5">
                     {u.verification_status === "pending" && (
                       <>
-                        <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors active:scale-95" title={t("approve")}>
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        </button>
-                        <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors active:scale-95" title={t("reject")}>
-                          <X className="w-3.5 h-3.5 text-red-500" />
-                        </button>
+                        <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-3.5 h-3.5 text-accent" /></button>
+                        <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-3.5 h-3.5 text-destructive" /></button>
                       </>
                     )}
-                    <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors active:scale-95" title={t("userDetails")}>
-                      <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                    <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors active:scale-95" title={t("delete")}>
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </button>
+                    <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                    <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
                   </div>
                 </div>
               ))}
@@ -407,107 +299,43 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ON-DUTY TAB */}
-      {tab === "onduty" && (
-        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-          {onDutyRescuers.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center">
-              <Shield className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-              <p className="text-sm text-muted-foreground">{t("noRescuersOnDuty")}</p>
-            </div>
-          ) : (
-            onDutyRescuers.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-card border">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold truncate">{r.full_name}</p>
-                  <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] font-bold text-emerald-400">{t("active")}</span>
-                  </div>
-                  <p className="text-[9px] text-muted-foreground">
-                    {t("since")} {new Date(r.checked_in_at).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* ALERTS TAB — with user names */}
+      {/* ALERTS TAB */}
       {tab === "alerts" && (
-        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-          <div className="flex gap-2 mb-2">
+        <div className="space-y-3">
+          <div className="flex gap-1.5 mb-2">
             {(["all", "active", "resolved"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setAlertFilter(f)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-bold transition-colors",
-                  alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                )}
-              >
+              <button key={f} onClick={() => setAlertFilter(f)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium", alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
                 {f === "all" ? t("all") : f === "active" ? t("active") : t("resolved")}
               </button>
             ))}
           </div>
-
           {filteredAlerts.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center">
-              <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+            <div className="p-8 rounded-xl bg-card border text-center">
+              <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
               <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
             </div>
           ) : (
             filteredAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={cn(
-                  "p-4 rounded-2xl border transition-all",
-                  alert.status === "active"
-                    ? "bg-destructive/5 border-destructive/30 shadow-[0_0_15px_hsl(0_72%_51%/0.15)]"
-                    : "bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_15px_hsl(145_63%_42%/0.1)]"
-                )}
-              >
+              <div key={alert.id} className={cn("p-3.5 rounded-xl border", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
                 <div className="flex items-center gap-3">
-                  {/* Avatar */}
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
-                    alert.status === "active"
-                      ? "bg-destructive/10 text-destructive border border-destructive/20"
-                      : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                  )}>
+                  <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
                     {alert.user_name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">{alert.user_name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-[10px] text-muted-foreground truncate">
-                        {alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}
-                      </span>
+                    <p className="text-sm font-medium truncate">{alert.user_name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className={cn(
-                      "text-[9px] font-bold px-2 py-0.5 rounded-full",
-                      alert.status === "active"
-                        ? "bg-destructive/15 text-destructive"
-                        : "bg-emerald-500/15 text-emerald-500"
-                    )}>
-                      {alert.status === "active" ? "🔴 " + t("active") : "🟢 " + t("resolved")}
+                    <span className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                      {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
                     </span>
-                    <p className="text-[9px] text-muted-foreground mt-1">
-                      {new Date(alert.created_at).toLocaleString()}
-                    </p>
+                    <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   <span>{(alert.accepted_by || []).length} {t("responders")}</span>
                 </div>
@@ -519,151 +347,105 @@ export default function AdminDashboard() {
 
       {/* EVIDENCE TAB */}
       {tab === "evidence" && (() => {
-        const filteredEvidence = evidence.filter(item => {
-          const matchSearch = !evidenceSearch || (item.user_name || "").toLowerCase().includes(evidenceSearch.toLowerCase()) || item.name.toLowerCase().includes(evidenceSearch.toLowerCase());
-          const itemDate = new Date(item.created_at);
-          const matchFrom = !evidenceDateFrom || itemDate >= new Date(evidenceDateFrom);
-          const matchTo = !evidenceDateTo || itemDate <= new Date(evidenceDateTo + "T23:59:59");
-          return matchSearch && matchFrom && matchTo;
+        const fe = evidence.filter(item => {
+          const ms = !evidenceSearch || (item.user_name || "").toLowerCase().includes(evidenceSearch.toLowerCase());
+          const d = new Date(item.created_at);
+          const mf = !evidenceDateFrom || d >= new Date(evidenceDateFrom);
+          const mt = !evidenceDateTo || d <= new Date(evidenceDateTo + "T23:59:59");
+          return ms && mf && mt;
         });
         return (
-        <div className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
-          {/* Search & Date Filters */}
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by user name..."
-                value={evidenceSearch}
-                onChange={(e) => setEvidenceSearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[10px] text-muted-foreground font-bold mb-0.5 block">From</label>
-                <Input type="date" value={evidenceDateFrom} onChange={(e) => setEvidenceDateFrom(e.target.value)} className="h-8 text-xs" />
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search by user..." value={evidenceSearch} onChange={(e) => setEvidenceSearch(e.target.value)} className="pl-9 h-9 text-sm" />
               </div>
-              <div className="flex-1">
-                <label className="text-[10px] text-muted-foreground font-bold mb-0.5 block">To</label>
-                <Input type="date" value={evidenceDateTo} onChange={(e) => setEvidenceDateTo(e.target.value)} className="h-8 text-xs" />
-              </div>
-              {(evidenceDateFrom || evidenceDateTo || evidenceSearch) && (
-                <button onClick={() => { setEvidenceSearch(""); setEvidenceDateFrom(""); setEvidenceDateTo(""); }} className="self-end p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors h-8 px-2 text-[10px] font-bold">
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="text-[10px] text-muted-foreground">{filteredEvidence.length} result(s)</p>
-          </div>
-
-          {loadingEvidence ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
-          ) : filteredEvidence.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center">
-              <Video className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-              <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
-            </div>
-          ) : (
-            filteredEvidence.map((item, i) => (
-              <div key={i} className="p-4 rounded-2xl bg-card border space-y-3 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20">
-                    <Video className="w-4 h-4 text-destructive" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate">{item.user_name || "Unknown"}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {new Date(item.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors active:scale-95"
-                    title="Download"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground font-medium mb-0.5 block">From</label>
+                  <Input type="date" value={evidenceDateFrom} onChange={(e) => setEvidenceDateFrom(e.target.value)} className="h-8 text-xs" />
                 </div>
-                <video
-                  src={item.url}
-                  controls
-                  className="w-full rounded-xl bg-black/50 max-h-48"
-                  preload="metadata"
-                />
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground font-medium mb-0.5 block">To</label>
+                  <Input type="date" value={evidenceDateTo} onChange={(e) => setEvidenceDateTo(e.target.value)} className="h-8 text-xs" />
+                </div>
+                {(evidenceDateFrom || evidenceDateTo || evidenceSearch) && (
+                  <button onClick={() => { setEvidenceSearch(""); setEvidenceDateFrom(""); setEvidenceDateTo(""); }} className="self-end px-2 h-8 rounded-lg bg-secondary text-[10px] font-medium text-muted-foreground">Clear</button>
+                )}
               </div>
-            ))
-          )}
-        </div>
+              <p className="text-[10px] text-muted-foreground">{fe.length} result(s)</p>
+            </div>
+            {loadingEvidence ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
+            ) : fe.length === 0 ? (
+              <div className="p-8 rounded-xl bg-card border text-center">
+                <Video className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
+                <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
+              </div>
+            ) : (
+              fe.map((item, i) => (
+                <div key={i} className="p-3.5 rounded-xl bg-card border space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center"><Video className="w-4 h-4 text-destructive" /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.user_name || "Unknown"}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(item.created_at).toLocaleString()}</p>
+                    </div>
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-primary/10 text-primary active:scale-95"><Download className="w-4 h-4" /></a>
+                  </div>
+                  <video src={item.url} controls className="w-full rounded-lg bg-black/50 max-h-48" preload="metadata" />
+                </div>
+              ))
+            )}
+          </div>
         );
       })()}
 
-      {/* View proof modal */}
-      {viewingProof && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewingProof(null)}>
-          <div className="glass-card rounded-2xl p-5 w-full max-w-sm space-y-4 animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-black">{t("userDetails")}</h3>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">{t("name")}:</span> {viewingProof.full_name}</p>
+      {/* View proof dialog */}
+      <Dialog open={!!viewingProof} onOpenChange={() => setViewingProof(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("userDetails")}</DialogTitle>
+            <DialogDescription>{viewingProof?.full_name}</DialogDescription>
+          </DialogHeader>
+          {viewingProof && (
+            <div className="space-y-3 text-sm">
               <p><span className="text-muted-foreground">{t("phone")}:</span> {viewingProof.phone || "N/A"}</p>
               <p><span className="text-muted-foreground">{t("city")}:</span> {viewingProof.city || "N/A"}</p>
               <p><span className="text-muted-foreground">{t("role")}:</span> <span className="capitalize">{viewingProof.role}</span></p>
               <p><span className="text-muted-foreground">{t("status")}:</span> <span className="capitalize">{viewingProof.verification_status}</span></p>
+              {viewingProof.verification_status === "pending" && (
+                <div className="flex gap-2">
+                  <button onClick={() => { handleApproveUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "verified" }); }} className="flex-1 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> {t("approve")}</button>
+                  <button onClick={() => { handleRejectUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }} className="flex-1 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><X className="w-4 h-4" /> {t("reject")}</button>
+                </div>
+              )}
+              {(viewingProof.aadhaar_url || viewingProof.driving_license_url) && (
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("uploadedProofs")}</p>
+                  {viewingProof.aadhaar_url && <a href={getProofUrl(viewingProof.aadhaar_url) || "#"} target="_blank" rel="noopener noreferrer" className="block p-2.5 rounded-lg bg-secondary text-sm text-primary hover:underline">{t("aadhaarProof")}</a>}
+                  {viewingProof.driving_license_url && <a href={getProofUrl(viewingProof.driving_license_url) || "#"} target="_blank" rel="noopener noreferrer" className="block p-2.5 rounded-lg bg-secondary text-sm text-primary hover:underline">{t("drivingLicense")}</a>}
+                </div>
+              )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-            {viewingProof.verification_status === "pending" && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { handleApproveUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "verified" }); }}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" /> {t("approve")}
-                </button>
-                <button
-                  onClick={() => { handleRejectUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }}
-                  className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold flex items-center justify-center gap-1.5"
-                >
-                  <X className="w-4 h-4" /> {t("reject")}
-                </button>
-              </div>
-            )}
-
-            {(viewingProof.aadhaar_url || viewingProof.driving_license_url) && (
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t("uploadedProofs")}</p>
-                {viewingProof.aadhaar_url && (
-                  <a href={getProofUrl(viewingProof.aadhaar_url) || "#"} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-xl bg-secondary/50 border border-border/40 text-sm text-primary hover:underline">
-                    {t("aadhaarProof")}
-                  </a>
-                )}
-                {viewingProof.driving_license_url && (
-                  <a href={getProofUrl(viewingProof.driving_license_url) || "#"} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-xl bg-secondary/50 border border-border/40 text-sm text-primary hover:underline">
-                    {t("drivingLicense")}
-                  </a>
-                )}
-              </div>
-            )}
-            <button onClick={() => setViewingProof(null)} className="w-full py-2.5 rounded-xl bg-secondary text-sm font-bold">{t("close")}</button>
-          </div>
-        </div>
-      )}
-
-      {/* Delete confirmation */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setDeleteConfirm(null)}>
-          <div className="glass-card rounded-2xl p-5 w-full max-w-xs space-y-4 animate-in zoom-in-95 duration-200 text-center" onClick={(e) => e.stopPropagation()}>
-            <Trash2 className="w-10 h-10 text-destructive mx-auto" />
-            <p className="text-sm font-bold">{t("deleteUser")}</p>
-            <p className="text-xs text-muted-foreground">{t("cannotUndo")}</p>
-            <div className="flex gap-2">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl bg-secondary text-sm font-bold">{t("cancel")}</button>
-              <button onClick={() => handleDeleteUser(deleteConfirm)} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold">{t("delete")}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>{t("deleteUser")}</DialogTitle>
+            <DialogDescription>{t("cannotUndo")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2">
+            <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl bg-secondary text-sm font-semibold">{t("cancel")}</button>
+            <button onClick={() => deleteConfirm && handleDeleteUser(deleteConfirm)} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold">{t("delete")}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
