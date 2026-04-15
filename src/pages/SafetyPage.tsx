@@ -35,29 +35,14 @@ export default function SafetyPage() {
 
   return (
     <div className="px-4 space-y-4">
-      <h2 className="label-caps px-1 animate-in fade-in slide-in-from-bottom-2 duration-500">{t("safetyTips")}</h2>
-
-      <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-        {tips.map((tip, i) => (
-          <div key={i} className="glass-card flex items-center gap-3 p-3.5 rounded-2xl">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Heart className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <p className="text-sm">{tip}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Police stations moved to Map toggle */}
-
-      {/* Emergency Contacts — WOMEN ONLY */}
+      {/* Emergency Contacts — WOMEN ONLY (moved above tips) */}
       {isWomen && (
         <>
-          <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
+          <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom-3 duration-500">
             <h2 className="label-caps px-1">{t("emergencyContacts")}</h2>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold active:scale-95 transition-transform"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold active:scale-95 transition-transform glow-primary"
             >
               <Plus className="w-3.5 h-3.5" />
               {t("add")}
@@ -65,7 +50,7 @@ export default function SafetyPage() {
           </div>
 
           {showForm && (
-            <div className="glass-card rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-4 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <UserPlus className="w-4 h-4 text-primary" />
                 <p className="text-sm font-bold">{t("newContact")}</p>
@@ -86,7 +71,7 @@ export default function SafetyPage() {
               <button
                 onClick={handleAdd}
                 disabled={!name.trim() || !phone.trim()}
-                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform"
+                className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 active:scale-[0.98] transition-transform glow-primary"
               >
                 {t("saveContact")}
               </button>
@@ -94,21 +79,21 @@ export default function SafetyPage() {
           )}
 
           {loading ? (
-            <div className="glass-card p-6 rounded-2xl text-center">
+            <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-6 text-center">
               <p className="text-sm text-muted-foreground">{t("loading")}</p>
             </div>
           ) : contacts.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+            <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-8 text-center animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
               <Phone className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-40" />
               <p className="text-sm font-medium text-muted-foreground">{t("noContactsYet")}</p>
               <p className="text-[10px] text-muted-foreground mt-1">{t("addContactsWhatsApp")}</p>
             </div>
           ) : (
-            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
               {contacts.map((contact) => (
-                <div key={contact.id} className="glass-card flex items-center gap-3 p-3.5 rounded-2xl">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                    <Phone className="w-4 h-4 text-blue-400" />
+                <div key={contact.id} className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border flex items-center gap-3 p-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
+                    <Phone className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate">{contact.name}</p>
@@ -125,7 +110,7 @@ export default function SafetyPage() {
             </div>
           )}
 
-          <div className="glass-card rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
+          <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-4 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               💡 {t("helpMeInfo")}
             </p>
@@ -133,6 +118,7 @@ export default function SafetyPage() {
         </>
       )}
 
+      {/* Emergency Numbers */}
       <h2 className="label-caps px-1 pt-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">{t("emergencyNumbers")}</h2>
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300">
         {[
@@ -144,12 +130,25 @@ export default function SafetyPage() {
           <a
             key={item.number}
             href={`tel:${item.number}`}
-            className="glass-card flex flex-col items-center p-4 rounded-2xl hover:gold-glow transition-all active:scale-[0.97] text-center"
+            className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border flex flex-col items-center p-4 hover:glow-primary transition-all active:scale-[0.97] text-center"
           >
             <Phone className="w-5 h-5 text-primary mb-2" />
             <p className="text-sm font-bold">{item.number}</p>
             <p className="text-[10px] text-muted-foreground">{item.name}</p>
           </a>
+        ))}
+      </div>
+
+      {/* Safety Tips — LAST */}
+      <h2 className="label-caps px-1 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-300">{t("safetyTips")}</h2>
+      <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-400">
+        {tips.map((tip, i) => (
+          <div key={i} className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border flex items-center gap-3 p-3.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 glow-primary">
+              <Heart className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <p className="text-sm">{tip}</p>
+          </div>
         ))}
       </div>
     </div>
