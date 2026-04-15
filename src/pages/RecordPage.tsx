@@ -87,7 +87,7 @@ export default function RecordPage() {
         {!isRecording && !uploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60">
             <div className="text-center space-y-4">
-              <div className="w-20 h-20 mx-auto rounded-full bg-destructive/20 flex items-center justify-center border-2 border-destructive/40">
+              <div className="w-20 h-20 mx-auto rounded-full bg-destructive/20 flex items-center justify-center border-2 border-destructive/40 glow-destructive">
                 <Video className="w-10 h-10 text-destructive" />
               </div>
               <div>
@@ -116,12 +116,12 @@ export default function RecordPage() {
         )}
       </div>
 
-      {/* Controls */}
-      <div className="safe-area-bottom bg-background/90 backdrop-blur-xl border-t border-border/30 py-6 flex items-center justify-center">
+      {/* Controls — positioned above the floating bottom nav */}
+      <div className="absolute bottom-28 left-0 right-0 flex items-center justify-center z-10">
         {isRecording ? (
           <button
             onClick={stopRecording}
-            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-xl active:scale-95 transition-transform border-4 border-white/20"
+            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-xl active:scale-95 transition-transform border-4 border-white/20 glow-destructive"
           >
             <StopCircle className="w-10 h-10 text-white" />
           </button>
@@ -129,7 +129,7 @@ export default function RecordPage() {
           <button
             onClick={startRecording}
             disabled={uploading}
-            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-xl active:scale-95 transition-transform border-4 border-white/20 disabled:opacity-50"
+            className="w-20 h-20 rounded-full bg-destructive flex items-center justify-center shadow-xl active:scale-95 transition-transform border-4 border-white/20 disabled:opacity-50 glow-destructive"
           >
             <Video className="w-10 h-10 text-white" />
           </button>

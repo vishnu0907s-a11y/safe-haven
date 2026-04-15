@@ -17,13 +17,12 @@ import {
 function TelemetryCard() {
   const telemetry = useLiveTelemetry();
   const { t } = useI18n();
-  const signalColor = telemetry.signalStatus === "connected" ? "text-accent" : telemetry.signalStatus === "weak" ? "text-warning" : "text-destructive";
 
   return (
-    <div className="rounded-xl bg-card border p-4">
+    <div className="rounded-xl bg-card/80 backdrop-blur-lg border glow-border p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="label-caps">{t("liveTelemetry")}</p>
-        <div className={cn("w-2 h-2 rounded-full", telemetry.signalStatus === "connected" ? "bg-accent" : "bg-destructive animate-pulse")} />
+        <div className={cn("w-2 h-2 rounded-full", telemetry.signalStatus === "connected" ? "bg-accent glow-accent" : "bg-destructive animate-pulse")} />
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-3xl font-bold text-primary">{telemetry.speed}</span>
@@ -39,7 +38,7 @@ function AttendanceCard() {
   if (!isEligible) return null;
 
   return (
-    <div className="rounded-xl bg-card border p-4">
+    <div className="rounded-xl bg-card/80 backdrop-blur-lg border glow-border p-4">
       <div className="flex items-center gap-2 mb-3">
         <Clock className="w-4 h-4 text-primary" />
         <p className="label-caps">{t("attendance")}</p>
@@ -51,14 +50,14 @@ function AttendanceCard() {
               <p className="text-sm font-semibold text-accent">{t("onDuty")}</p>
               <p className="text-[10px] text-muted-foreground">{t("since")} {new Date(activeShift.checked_in_at).toLocaleTimeString()}</p>
             </div>
-            <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse glow-accent" />
           </div>
           <button onClick={checkOut} className="w-full py-2.5 rounded-xl bg-destructive/10 text-destructive text-sm font-semibold border border-destructive/20 flex items-center justify-center gap-2 active:scale-[0.98]">
             <LogOut className="w-4 h-4" /> {t("checkOut")}
           </button>
         </div>
       ) : (
-        <button onClick={checkIn} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2">
+        <button onClick={checkIn} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-primary">
           <LogIn className="w-4 h-4" /> {t("checkInStartDuty")}
         </button>
       )}
@@ -99,7 +98,7 @@ function RescueCompleteDialog({ responders, alertId, open, onClose }: { responde
           <DialogDescription>{submitted ? t("feedbackSubmitted") : t("rateResponders")}</DialogDescription>
         </DialogHeader>
         {submitted ? (
-          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">{t("done")}</button>
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold glow-primary">{t("done")}</button>
         ) : (
           <div className="space-y-4">
             {responders.length === 0 ? (
@@ -123,7 +122,7 @@ function RescueCompleteDialog({ responders, alertId, open, onClose }: { responde
                 <textarea placeholder={t("writeFeedback")} value={feedbacks[r.user_id] || ""} onChange={(e) => setFeedbacks((p) => ({ ...p, [r.user_id]: e.target.value }))} className="w-full text-sm bg-background border border-border rounded-lg p-2 h-14 resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
               </div>
             ))}
-            <button onClick={handleSubmit} disabled={submitting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-60">
+            <button onClick={handleSubmit} disabled={submitting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-60 glow-primary">
               {submitting ? t("submitting") : t("submitRatings")}
             </button>
             <button onClick={onClose} className="w-full py-1.5 text-xs text-muted-foreground">{t("skipForNow")}</button>
@@ -200,13 +199,13 @@ export default function DashboardPage() {
       <RescueCompleteDialog responders={resolvedResponders} alertId={resolvedAlertId} open={showFeedback} onClose={() => setShowFeedback(false)} />
 
       {/* Profile card */}
-      <div className="rounded-xl bg-card border p-4 flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">{user.full_name.charAt(0)}</div>
+      <div className="rounded-xl bg-card/80 backdrop-blur-lg border glow-border p-4 flex items-center gap-3">
+        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg glow-primary">{user.full_name.charAt(0)}</div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{user.full_name}</p>
           <p className="text-[10px] text-muted-foreground capitalize">{user.role} • {user.city}</p>
         </div>
-        <span className={cn("text-[9px] font-semibold px-2 py-1 rounded-full", user.verification_status === "verified" ? "bg-accent/10 text-accent" : "bg-warning/10 text-warning")}>
+        <span className={cn("text-[9px] font-semibold px-2 py-1 rounded-full", user.verification_status === "verified" ? "bg-accent/10 text-accent glow-accent" : "bg-warning/10 text-warning")}>
           {user.verification_status === "verified" ? t("verified") : t("pending")}
         </span>
       </div>
@@ -214,19 +213,19 @@ export default function DashboardPage() {
       {isResponder && <TelemetryCard />}
       <AttendanceCard />
 
-      {/* SOS Section — Women */}
+      {/* SOS Section — Women — NO card wrapper, just the button with glow */}
       {user.role === "women" && (
-        <div className="rounded-xl bg-card border p-6 text-center">
+        <div className="text-center py-4">
           <p className="label-caps mb-4">{t("alertSignal")}</p>
 
           {activeAlert ? (
             <div className="space-y-3">
-              <div className="w-28 h-28 mx-auto rounded-full bg-accent/10 border-2 border-accent flex flex-col items-center justify-center">
+              <div className="w-28 h-28 mx-auto rounded-full bg-accent/10 border-2 border-accent flex flex-col items-center justify-center glow-accent">
                 <CheckCircle2 className="w-6 h-6 text-accent" />
                 <span className="text-xs font-semibold text-accent mt-1">{t("alertActive")}</span>
                 <span className="text-[9px] text-muted-foreground">{activeAlert.accepted_by?.length || 0} {t("responders")}</span>
               </div>
-              <button onClick={handleSafeNow} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2">
+              <button onClick={handleSafeNow} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-accent">
                 <ShieldCheck className="w-5 h-5" /> {t("imSafeNow")}
               </button>
               <button onClick={() => cancelAlert()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-muted-foreground text-xs font-medium">
@@ -235,15 +234,16 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div>
-              {/* Unique SOS / HELP ME button */}
+              {/* SOS button with glow — no card box behind it */}
               <div className="relative w-36 h-36 mx-auto">
-                {/* Outer pulse ring */}
-                <div className="absolute inset-[-12px] rounded-full bg-destructive/10 animate-pulse-ring" />
-                
+                {/* Outer glow ring */}
+                <div className="absolute inset-[-16px] rounded-full bg-destructive/8 animate-pulse-ring" />
+                <div className="absolute inset-[-8px] rounded-full bg-destructive/5 animate-pulse-ring" style={{ animationDelay: "0.5s" }} />
+
                 {/* Progress ring */}
                 <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 144 144">
-                  <circle cx="72" cy="72" r="68" fill="none" stroke="hsl(var(--destructive) / 0.15)" strokeWidth="4" />
-                  <circle cx="72" cy="72" r="68" fill="none" stroke="hsl(var(--destructive))" strokeWidth="4"
+                  <circle cx="72" cy="72" r="68" fill="none" stroke="hsl(var(--destructive) / 0.1)" strokeWidth="3" />
+                  <circle cx="72" cy="72" r="68" fill="none" stroke="hsl(var(--destructive))" strokeWidth="3"
                     strokeDasharray={`${sosProgress * 427} 427`} strokeLinecap="round" className="transition-none" />
                 </svg>
 
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                   disabled={sending}
                   className={cn(
                     "absolute inset-2 rounded-full flex flex-col items-center justify-center z-10",
-                    "bg-destructive text-destructive-foreground shadow-lg select-none",
+                    "bg-destructive text-destructive-foreground select-none animate-sos-glow",
                     sosHolding ? "scale-95" : "hover:scale-[1.02]",
                     "transition-transform duration-150 disabled:opacity-60"
                   )}
@@ -277,10 +277,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 px-1">
             <AlertTriangle className="w-4 h-4 text-destructive" />
             <p className="label-caps">{t("activeEmergencyAlerts")}</p>
-            {alerts.length > 0 && <span className="text-[9px] font-semibold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">{alerts.length}</span>}
+            {alerts.length > 0 && <span className="text-[9px] font-semibold bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full glow-destructive">{alerts.length}</span>}
           </div>
           {alerts.length === 0 ? (
-            <div className="p-6 rounded-xl bg-card border text-center">
+            <div className="p-6 rounded-xl bg-card/80 backdrop-blur-lg border glow-border text-center">
               <CheckCircle2 className="w-7 h-7 text-accent mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">{t("noActiveEmergencies")}</p>
             </div>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
               const accepted = alert.accepted_by || [];
               const hasAccepted = accepted.includes(user.user_id);
               return (
-                <div key={alert.id} className="p-4 rounded-xl bg-card border border-destructive/20 space-y-3">
+                <div key={alert.id} className="p-4 rounded-xl bg-card/80 backdrop-blur-lg border border-destructive/20 space-y-3 glow-destructive">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm font-semibold text-destructive">🚨 {t("emergencyAlert")}</p>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                       <CheckCircle2 className="w-4 h-4" /> {t("acceptedNavigate")}
                     </div>
                   ) : (
-                    <button onClick={() => acceptAlert(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50">
+                    <button onClick={() => acceptAlert(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary">
                       {t("acceptRespond")}
                     </button>
                   )}
@@ -319,15 +319,15 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
-        <button className="flex items-center gap-3 p-3.5 rounded-xl bg-card border active:scale-[0.97] transition-transform">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-primary" /></div>
+        <button className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-lg border glow-border active:scale-[0.97] transition-transform">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center glow-primary"><MapPin className="w-4 h-4 text-primary" /></div>
           <div className="text-left">
             <p className="text-sm font-medium">{t("liveMap")}</p>
             <p className="text-[10px] text-muted-foreground">{t("trackLocation")}</p>
           </div>
         </button>
-        <button className="flex items-center gap-3 p-3.5 rounded-xl bg-card border active:scale-[0.97] transition-transform">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center"><Shield className="w-4 h-4 text-accent" /></div>
+        <button className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-lg border glow-border active:scale-[0.97] transition-transform">
+          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center glow-accent"><Shield className="w-4 h-4 text-accent" /></div>
           <div className="text-left">
             <p className="text-sm font-medium">{t("safeZone")}</p>
             <p className="text-[10px] text-muted-foreground">{t("nearbyShelters")}</p>

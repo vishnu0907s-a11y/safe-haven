@@ -74,7 +74,7 @@ export default function ProfilePage() {
       {/* Edit Profile Modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEditing(false)}>
-          <div className="glass-card rounded-2xl p-5 w-full max-w-sm space-y-4 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="rounded-2xl bg-card/90 backdrop-blur-xl border glow-border p-5 w-full max-w-sm space-y-4 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black">{t("editProfile")}</h3>
               <button onClick={() => setEditing(false)} className="p-1 rounded-lg hover:bg-secondary"><X className="w-4 h-4" /></button>
@@ -82,7 +82,7 @@ export default function ProfilePage() {
 
             <div className="flex flex-col items-center gap-2">
               <label className="relative cursor-pointer">
-                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-primary font-black text-2xl border-2 border-dashed border-border overflow-hidden">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-primary font-black text-2xl border-2 border-dashed border-border overflow-hidden glow-primary">
                   {avatarFile ? (
                     <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" alt="" />
                   ) : user.avatar_url ? (
@@ -91,7 +91,7 @@ export default function ProfilePage() {
                     user.full_name.charAt(0)
                   )}
                 </div>
-                <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center glow-primary">
                   <Camera className="w-3.5 h-3.5 text-primary-foreground" />
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
@@ -108,7 +108,7 @@ export default function ProfilePage() {
             <button
               onClick={handleSave}
               disabled={saving || !editName.trim()}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 glow-primary"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? t("updating") : t("saveChanges")}
@@ -118,7 +118,7 @@ export default function ProfilePage() {
       )}
 
       {/* Info row */}
-      <div className="glass-card rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="flex items-center justify-between mb-3">
           <p className="label-caps">{t("profile")}</p>
           <button onClick={startEdit} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold active:scale-95 transition-transform">
@@ -144,7 +144,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Location info */}
-      <div className="glass-card rounded-2xl p-5 space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
         <div>
           <p className="label-caps mb-2">{t("fleetAssociation")}</p>
           <div className="flex items-center justify-between">
@@ -163,7 +163,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Theme toggle */}
-      <div className="glass-card rounded-2xl p-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
+      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-150">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {theme === "dark" ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
@@ -177,14 +177,14 @@ export default function ProfilePage() {
       </div>
 
       {/* Diagnostics & settings */}
-      <div className="glass-card rounded-2xl p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
         <p className="label-caps mb-1">{t("diagnosticsSettings")}</p>
         {menuItems.map((item) => (
           <button
             key={item.label}
             className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border/40 hover:border-primary/30 transition-all active:scale-[0.98]"
           >
-            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center glow-primary">
               <item.icon className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex-1 text-left">
@@ -200,17 +200,17 @@ export default function ProfilePage() {
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border",
             user.verification_status === "verified"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-              : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+              ? "border-accent/30 bg-accent/10 text-accent"
+              : "border-warning/30 bg-warning/10 text-warning"
           )}>
             <span className={cn(
               "w-1.5 h-1.5 rounded-full",
-              user.verification_status === "verified" ? "bg-emerald-400" : "bg-amber-400"
+              user.verification_status === "verified" ? "bg-accent" : "bg-warning"
             )} />
             {user.verification_status === "verified" ? t("verified") : t("pending")}
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-blue-500/30 bg-blue-500/10 text-blue-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-primary/30 bg-primary/10 text-primary">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             {t("gpsRelay")}
           </div>
         </div>
