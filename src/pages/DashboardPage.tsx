@@ -1,5 +1,7 @@
-import { MapPin, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare } from "lucide-react";
+import { MapPin, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare, Navigation } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { getDistanceKm, getEta } from "@/lib/map-utils";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
@@ -142,8 +144,22 @@ export default function DashboardPage() {
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
   const { alerts, acceptAlert } = useRealtimeAlerts();
   const { contacts, sendWhatsAppAlerts } = useEmergencyContacts();
+  const navigate = useNavigate();
   const { resolveAlert } = useResolveAlert();
   const [showFeedback, setShowFeedback] = useState(false);
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+
+  const isResponder = user ? ["driver", "police", "protector"].includes(user.role) : false;
+
+  useEffect(() => {
+    if (!isResponder) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
+      (err) => console.error("Position error:", err),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isResponder]);
   const [resolvedResponders, setResolvedResponders] = useState<ResponderInfo[]>([]);
   const [resolvedAlertId, setResolvedAlertId] = useState("");
   const [sosProgress, setSosProgress] = useState(0);
@@ -152,7 +168,6 @@ export default function DashboardPage() {
   const sosAnimRef = useRef<number>(0);
 
   if (!user) return null;
-  const isResponder = ["driver", "police", "protector"].includes(user.role);
 
   const triggerSOS = async () => {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -180,6 +195,11 @@ export default function DashboardPage() {
   };
 
   const handleSOSEnd = () => { setSosHolding(false); setSosProgress(0); if (sosAnimRef.current) cancelAnimationFrame(sosAnimRef.current); };
+
+  const handleAcceptAndNavigate = async (alertId: string) => {
+    await acceptAlert(alertId);
+    navigate("/map", { state: { trackingAlertId: alertId, showAlerts: true } });
+  };
 
   const handleSafeNow = async () => {
     if (!activeAlert) return;
@@ -303,13 +323,29 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin className="w-3 h-3" />
                     <span>{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                    {userPos && (
+                      <span className="ml-auto text-accent font-medium">
+                        {getDistanceKm(userPos[0], userPos[1], alert.latitude, alert.longitude).toFixed(1)} km ({getEta(getDistanceKm(userPos[0], userPos[1], alert.latitude, alert.longitude))})
+                      </span>
+                    )}
                   </div>
-                  {hasAccepted ? (
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-accent/10 text-accent text-xs font-medium border border-accent/20">
-                      <CheckCircle2 className="w-4 h-4" /> {t("acceptedNavigate")}
+
+                  {alert.profiles && (
+                    <div className="p-2.5 rounded-lg bg-secondary/50 space-y-1">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("victimDetails")}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{alert.profiles.full_name}</p>
+                        {alert.profiles.phone && <a href={`tel:${alert.profiles.phone}`} className="text-xs text-primary font-semibold">{alert.profiles.phone}</a>}
+                      </div>
                     </div>
+                  )}
+
+                  {hasAccepted ? (
+                    <button onClick={() => navigate("/map", { state: { trackingAlertId: alert.id, showAlerts: true } })} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-accent/10 text-accent text-xs font-medium border border-accent/20 active:scale-[0.98]">
+                      <Navigation className="w-4 h-4" /> {t("acceptedNavigate")}
+                    </button>
                   ) : (
-                    <button onClick={() => acceptAlert(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary">
+                    <button onClick={() => handleAcceptAndNavigate(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary">
                       {t("acceptRespond")}
                     </button>
                   )}

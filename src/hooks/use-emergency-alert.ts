@@ -96,10 +96,10 @@ export function useRealtimeAlerts() {
   const fetchAlerts = useCallback(async () => {
     const { data } = await supabase
       .from("emergency_alerts")
-      .select("*")
+      .select("*, profiles:user_id(full_name, phone)")
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    if (data) setAlerts(data);
+    if (data) setAlerts(data as any);
     setLoading(false);
   }, []);
 
@@ -116,10 +116,19 @@ export function useRealtimeAlerts() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "emergency_alerts" },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "INSERT") {
-            setAlerts((prev) => [payload.new as EmergencyAlert, ...prev]);
-            toast.warning("🚨 New emergency alert!", { duration: 8000 });
+            const newAlert = payload.new as EmergencyAlert;
+            // Fetch profile for the new alert
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, phone")
+              .eq("user_id", newAlert.user_id)
+              .single();
+            
+            const enrichedAlert = { ...newAlert, profiles: profile };
+            setAlerts((prev) => [enrichedAlert as any, ...prev]);
+            toast.warning(`🚨 New alert from ${profile?.full_name || "someone"}!`, { duration: 8000 });
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as EmergencyAlert;
             if (updated.status === "resolved") {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, lazy } from "react";
+import { useLocation } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZero, SignalLow, Gauge, Shield } from "lucide-react";
@@ -7,6 +8,7 @@ import { useDangerZones } from "@/hooks/use-danger-zones";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
+import { getDistanceKm, getEta } from "@/lib/map-utils";
 import { cn } from "@/lib/utils";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -43,19 +45,6 @@ const policeIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
-function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function getEta(distKm: number) {
-  const minutes = Math.round((distKm / 30) * 60);
-  if (minutes < 1) return "<1 min";
-  return `~${minutes} min`;
-}
 
 interface PoliceStation {
   id: number;
@@ -68,6 +57,7 @@ interface PoliceStation {
 export default function MapPage() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const location = useLocation();
   const { alerts, acceptAlert } = useRealtimeAlerts();
   const { zones } = useDangerZones();
   const telemetry = useLiveTelemetry();
@@ -84,6 +74,15 @@ export default function MapPage() {
   const [showPolice, setShowPolice] = useState(false);
   const [policeStations, setPoliceStations] = useState<PoliceStation[]>([]);
   const [loadingPolice, setLoadingPolice] = useState(false);
+
+  // Auto-track alert from navigation state
+  useEffect(() => {
+    const state = location.state as { trackingAlertId?: string; showAlerts?: boolean };
+    if (state?.trackingAlertId) {
+      setTrackingAlertId(state.trackingAlertId);
+      if (state.showAlerts) setShowAlerts(true);
+    }
+  }, [location.state]);
 
   // Init map
   useEffect(() => {
