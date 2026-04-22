@@ -182,7 +182,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
         <LanguageToggle compact />
         <button onClick={toggle} className="p-2.5 rounded-full glass-card hover:gold-glow transition-all active:scale-95">
           {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -192,7 +192,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 max-w-lg mx-auto w-full">
         <div className="mb-6 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="w-32 h-32 flex items-center justify-center animate-in zoom-in-95 duration-1000">
-            <img src={resqherLogo} alt="ResQHer Logo" className="w-full h-full object-contain" />
+            <img src={resqherLogo} alt="ResQHer Logo" className="w-full h-full object-contain mix-blend-screen" />
           </div>
           <div className="flex flex-col items-center gap-1 mt-1">
             <h1 className="text-4xl font-black tracking-tighter">
