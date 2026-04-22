@@ -253,8 +253,13 @@ export default function DashboardPage() {
               <div className="w-28 h-28 mx-auto rounded-full bg-accent/10 border-2 border-accent flex flex-col items-center justify-center glow-accent">
                 <CheckCircle2 className="w-6 h-6 text-accent" />
                 <span className="text-xs font-semibold text-accent mt-1">{t("alertActive")}</span>
-                <span className="text-[9px] text-muted-foreground">{activeAlert.accepted_by?.length || 0} {t("responders")}</span>
+                <span className="text-[9px] text-muted-foreground">{(activeAlert.accepted_by || []).length} {t("responders")}</span>
               </div>
+              
+              <button onClick={() => navigate("/map")} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-primary">
+                <MapPin className="w-5 h-5" /> Track Responders on Map
+              </button>
+
               <button onClick={handleSafeNow} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-accent">
                 <ShieldCheck className="w-5 h-5" /> {t("imSafeNow")}
               </button>

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { getDistanceKm, getEta } from "@/lib/map-utils";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -45,6 +46,14 @@ const policeIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
+const rescuerIcon = L.divIcon({
+  html: `<div style="background:#22c55e;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 0 10px rgba(34,197,94,0.6);display:flex;align-items:center;justify-content:center;animation:pulse 2s infinite;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  </div>`,
+  className: "",
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+});
 
 interface PoliceStation {
   id: number;
@@ -74,6 +83,34 @@ export default function MapPage() {
   const [showPolice, setShowPolice] = useState(false);
   const [policeStations, setPoliceStations] = useState<PoliceStation[]>([]);
   const [loadingPolice, setLoadingPolice] = useState(false);
+  const [respondersLoc, setRespondersLoc] = useState<{ id: string; lat: number; lng: number }[]>([]);
+
+  // Fetch live responder locations for women
+  useEffect(() => {
+    if (user?.role !== "women" || alerts.length === 0) return;
+    const myAlert = alerts[0];
+    const acceptedIds = myAlert.accepted_by || [];
+    if (acceptedIds.length === 0) {
+      setRespondersLoc([]);
+      return;
+    }
+
+    const fetchResponders = async () => {
+      const { data } = await supabase
+        .from("attendance")
+        .select("user_id, latitude, longitude")
+        .in("user_id", acceptedIds)
+        .eq("status", "active");
+      
+      if (data) {
+        setRespondersLoc(data.map(d => ({ id: d.user_id, lat: d.latitude!, lng: d.longitude! })).filter(d => d.lat && d.lng));
+      }
+    };
+    
+    fetchResponders();
+    const interval = setInterval(fetchResponders, 5000);
+    return () => clearInterval(interval);
+  }, [user, alerts]);
 
   // Auto-track alert from navigation state
   useEffect(() => {
@@ -128,24 +165,47 @@ export default function MapPage() {
     }
   }, [myPos]);
 
-  // Alert markers
+  // Alert & Responder markers
+  const responderMarkersRef = useRef<Map<string, L.Marker>>(new Map());
+
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
-    const currentIds = new Set(alerts.map((a) => a.id));
-    alertMarkersRef.current.forEach((marker, id) => {
-      if (!currentIds.has(id)) { map.removeLayer(marker); alertMarkersRef.current.delete(id); }
-    });
-    alerts.forEach((alert) => {
-      const pos: [number, number] = [alert.latitude, alert.longitude];
-      if (alertMarkersRef.current.has(alert.id)) {
-        alertMarkersRef.current.get(alert.id)!.setLatLng(pos);
-      } else {
-        const marker = L.marker(pos, { icon: victimIcon }).addTo(map);
-        alertMarkersRef.current.set(alert.id, marker);
-      }
-    });
-  }, [alerts]);
+    
+    // Victim alert markers (for responders)
+    if (user?.role !== "women") {
+      const currentIds = new Set(alerts.map((a) => a.id));
+      alertMarkersRef.current.forEach((marker, id) => {
+        if (!currentIds.has(id)) { map.removeLayer(marker); alertMarkersRef.current.delete(id); }
+      });
+      alerts.forEach((alert) => {
+        const pos: [number, number] = [alert.latitude, alert.longitude];
+        if (alertMarkersRef.current.has(alert.id)) {
+          alertMarkersRef.current.get(alert.id)!.setLatLng(pos);
+        } else {
+          const marker = L.marker(pos, { icon: victimIcon }).addTo(map);
+          alertMarkersRef.current.set(alert.id, marker);
+        }
+      });
+    }
+
+    // Responder markers (for victims)
+    if (user?.role === "women") {
+      const currentRescuerIds = new Set(respondersLoc.map(r => r.id));
+      responderMarkersRef.current.forEach((marker, id) => {
+        if (!currentRescuerIds.has(id)) { map.removeLayer(marker); responderMarkersRef.current.delete(id); }
+      });
+      respondersLoc.forEach(r => {
+        const pos: [number, number] = [r.lat, r.lng];
+        if (responderMarkersRef.current.has(r.id)) {
+          responderMarkersRef.current.get(r.id)!.setLatLng(pos);
+        } else {
+          const marker = L.marker(pos, { icon: rescuerIcon }).addTo(map);
+          responderMarkersRef.current.set(r.id, marker);
+        }
+      });
+    }
+  }, [alerts, respondersLoc, user]);
 
   // Danger zones
   useEffect(() => {
@@ -164,21 +224,45 @@ export default function MapPage() {
 
   // Route line
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !myPos) return;
     const map = mapRef.current;
-    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
-    if (!trackingAlertId || !myPos) return;
-    const alert = alerts.find((a) => a.id === trackingAlertId);
-    if (!alert) return;
-    const victimPos: [number, number] = [alert.latitude, alert.longitude];
-    routeLineRef.current = L.polyline([myPos, victimPos], {
-      color: "#FFD700", weight: 5, opacity: 0.9, dashArray: "12, 10",
-    }).addTo(map);
     
-    // Smoothly fly to fit both positions
-    const bounds = L.latLngBounds([myPos, victimPos]);
-    map.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
-  }, [trackingAlertId, myPos, alerts]);
+    if (routeLineRef.current) { 
+      if (Array.isArray(routeLineRef.current)) {
+        (routeLineRef.current as any).forEach((l: L.Polyline) => map.removeLayer(l));
+      } else {
+        map.removeLayer(routeLineRef.current as any); 
+      }
+      routeLineRef.current = null; 
+    }
+
+    if (user?.role === "women") {
+      if (respondersLoc.length === 0) return;
+      const lines = respondersLoc.map(r => L.polyline([myPos, [r.lat, r.lng]], {
+        color: "#22c55e", weight: 5, opacity: 0.9, dashArray: "12, 10"
+      }).addTo(map));
+      routeLineRef.current = lines as any;
+      
+      const bounds = L.latLngBounds([myPos]);
+      respondersLoc.forEach(r => bounds.extend([r.lat, r.lng]));
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, { padding: [80, 80], duration: 1.5, maxZoom: 15 });
+      }
+    } else {
+      if (!trackingAlertId) return;
+      const alert = alerts.find((a) => a.id === trackingAlertId);
+      if (!alert) return;
+      const victimPos: [number, number] = [alert.latitude, alert.longitude];
+      routeLineRef.current = L.polyline([myPos, victimPos], {
+        color: "#FFD700", weight: 5, opacity: 0.9, dashArray: "12, 10",
+      }).addTo(map) as any;
+      
+      const bounds = L.latLngBounds([myPos, victimPos]);
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, { padding: [80, 80], duration: 1.5, maxZoom: 15 });
+      }
+    }
+  }, [trackingAlertId, myPos, alerts, user, respondersLoc]);
 
   // Police stations toggle
   useEffect(() => {
