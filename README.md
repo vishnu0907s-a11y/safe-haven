@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# ResQHer Project
 
 TODO: Document your project here

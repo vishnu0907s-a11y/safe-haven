@@ -18,14 +18,14 @@ const translations = {
     search: "Search",
     submit: "Submit",
     update: "Update",
-    
+
     // Welcome
     welcomeTo: "Welcome to ResQHer",
     getStarted: "Get Started",
     sos: "SOS",
     tracking: "Tracking",
     protection: "Protection",
-    
+
     // Auth
     chooseRole: "Choose your role to continue",
     womenUser: "Women User",
@@ -63,7 +63,7 @@ const translations = {
     docUploadFailed: "Document upload failed",
     uploadLater: "You can upload documents later from your profile.",
     backToRole: "← Back to role selection",
-    
+
     // Dashboard
     alertSignal: "Alert Signal",
     helpMe: "HELP ME",
@@ -107,7 +107,7 @@ const translations = {
     skipForNow: "Skip for now",
     thankYou: "Thank You!",
     feedbackSubmitted: "Your feedback has been submitted.",
-    
+
     // Safety
     safetyTips: "Safety Tips",
     tip1: "Share your live location with trusted contacts",
@@ -127,7 +127,7 @@ const translations = {
     womenHelpline: "Women Helpline",
     ambulance: "Ambulance",
     childHelpline: "Child Helpline",
-    
+
     // Map
     yourLocation: "You are here",
     liveTracking: "LIVE TRACKING",
@@ -142,12 +142,12 @@ const translations = {
     getDirections: "Get Directions",
     callStation: "Call",
     nearbyStations: "Nearby Stations",
-    
+
     // Alerts
     liveEmergencies: "Live Emergencies",
     alertHistory: "Alert History",
     noPastAlerts: "No past alerts",
-    
+
     // Points
     totalPoints: "Total Points",
     rescues: "RESCUES",
@@ -157,7 +157,7 @@ const translations = {
     noRescuesYet: "No rescues yet",
     acceptAlertsEarn: "Accept emergency alerts to earn points",
     rescueMission: "Rescue Mission",
-    
+
     // Profile
     emailRegistry: "Email Registry",
     phoneLine: "Phone Line",
@@ -183,11 +183,12 @@ const translations = {
     updating: "Updating...",
     profileUpdated: "Profile updated successfully",
     updateFailed: "Failed to update profile",
-    
+
     // Admin
     administrator: "Administrator",
     totalUsers: "Total Users",
     activeAlerts: "Active Alerts",
+    emergencyAlerts: "Emergency Alerts",
     allUsers: "All Users",
     onDutyRescuers: "On-Duty",
     noRescuersOnDuty: "No rescuers currently on duty",
@@ -215,7 +216,14 @@ const translations = {
     userApproved: "User approved",
     userRejected: "User rejected",
     approvalFailed: "Failed to update user status",
-    
+    mapView: "Map View",
+    showRescuers: "Show Rescuers",
+    showAlerts: "Show Alerts",
+    assignRescuer: "Assign Rescuer",
+    distance: "Distance",
+    available: "Available",
+    busy: "Busy",
+
     // Bottom Nav
     home: "HOME",
     map: "MAP",
@@ -230,7 +238,7 @@ const translations = {
     evidence: "Evidence",
     noEvidence: "No evidence videos yet",
     resolved: "Resolved",
-    
+
     // Video Recording
     recordVideo: "Record Video",
     startRecording: "Start Recording",
@@ -241,7 +249,7 @@ const translations = {
     liveVideoRecording: "Live Video Recording",
     recordingInProgress: "Recording in progress...",
     videoNote: "Videos are automatically uploaded and cannot be deleted. Used as evidence during emergencies.",
-    
+
     // Language
     language: "Language",
     english: "ENG",
@@ -262,14 +270,14 @@ const translations = {
     search: "தேடு",
     submit: "சமர்ப்பி",
     update: "புதுப்பி",
-    
+
     // Welcome
     welcomeTo: "ResQHer க்கு வரவேற்கிறோம்",
     getStarted: "தொடங்குங்கள்",
     sos: "SOS",
     tracking: "கண்காணிப்பு",
     protection: "பாதுகாப்பு",
-    
+
     // Auth
     chooseRole: "தொடர உங்கள் பாத்திரத்தை தேர்வு செய்யவும்",
     womenUser: "பெண் பயனர்",
@@ -307,7 +315,7 @@ const translations = {
     docUploadFailed: "ஆவணம் பதிவேற்றம் தோல்வி",
     uploadLater: "பிறகு உங்கள் சுயவிவரத்திலிருந்து ஆவணங்களை பதிவேற்றலாம்.",
     backToRole: "← பாத்திரம் தேர்வுக்கு திரும்பு",
-    
+
     // Dashboard
     alertSignal: "எச்சரிக்கை சமிக்ஞை",
     helpMe: "உதவி",
@@ -351,7 +359,7 @@ const translations = {
     skipForNow: "இப்போதைக்கு தவிர்",
     thankYou: "நன்றி!",
     feedbackSubmitted: "உங்கள் கருத்து சமர்ப்பிக்கப்பட்டது.",
-    
+
     // Safety
     safetyTips: "பாதுகாப்பு குறிப்புகள்",
     tip1: "நம்பகமான தொடர்புகளுடன் உங்கள் நேரடி இருப்பிடத்தை பகிரவும்",
@@ -371,7 +379,7 @@ const translations = {
     womenHelpline: "பெண்கள் உதவி எண்",
     ambulance: "ஆம்புலன்ஸ்",
     childHelpline: "குழந்தை உதவி எண்",
-    
+
     // Map
     yourLocation: "நீங்கள் இங்கே இருக்கிறீர்கள்",
     liveTracking: "நேரடி கண்காணிப்பு",
@@ -386,12 +394,12 @@ const translations = {
     getDirections: "வழிகாட்டு",
     callStation: "அழை",
     nearbyStations: "அருகிலுள்ள நிலையங்கள்",
-    
+
     // Alerts
     liveEmergencies: "நேரடி அவசரங்கள்",
     alertHistory: "எச்சரிக்கை வரலாறு",
     noPastAlerts: "கடந்த எச்சரிக்கைகள் இல்லை",
-    
+
     // Points
     totalPoints: "மொத்த புள்ளிகள்",
     rescues: "மீட்புகள்",
@@ -401,7 +409,7 @@ const translations = {
     noRescuesYet: "இன்னும் மீட்புகள் இல்லை",
     acceptAlertsEarn: "புள்ளிகள் பெற அவசர எச்சரிக்கைகளை ஏற்கவும்",
     rescueMission: "மீட்பு பணி",
-    
+
     // Profile
     emailRegistry: "மின்னஞ்சல் பதிவு",
     phoneLine: "தொலைபேசி",
@@ -427,11 +435,12 @@ const translations = {
     updating: "புதுப்பிக்கிறது...",
     profileUpdated: "சுயவிவரம் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
     updateFailed: "சுயவிவரத்தை புதுப்பிக்க முடியவில்லை",
-    
+
     // Admin
     administrator: "நிர்வாகி",
     totalUsers: "மொத்த பயனர்கள்",
     activeAlerts: "செயலில் எச்சரிக்கைகள்",
+    emergencyAlerts: "அவசர எச்சரிக்கைகள்",
     allUsers: "அனைத்து பயனர்கள்",
     onDutyRescuers: "கடமையில்",
     noRescuersOnDuty: "தற்போது கடமையில் மீட்பர்கள் இல்லை",
@@ -459,7 +468,14 @@ const translations = {
     userApproved: "பயனர் ஒப்புதல் அளிக்கப்பட்டது",
     userRejected: "பயனர் நிராகரிக்கப்பட்டார்",
     approvalFailed: "பயனர் நிலையை புதுப்பிக்க முடியவில்லை",
-    
+    mapView: "வரைபடப் பார்வை",
+    showRescuers: "மீட்பர்களைக் காட்டு",
+    showAlerts: "எச்சரிக்கைகளைக் காட்டு",
+    assignRescuer: "மீட்பரை ஒதுக்கு",
+    distance: "தூரம்",
+    available: "கிடைக்கிறது",
+    busy: "பிஸியாக",
+
     // Bottom Nav
     home: "முகப்பு",
     map: "வரைபடம்",
@@ -474,7 +490,7 @@ const translations = {
     evidence: "ஆதாரங்கள்",
     noEvidence: "இன்னும் ஆதார வீடியோக்கள் இல்லை",
     resolved: "தீர்க்கப்பட்டது",
-    
+
     // Video Recording
     recordVideo: "வீடியோ பதிவு",
     startRecording: "பதிவு தொடங்கு",
@@ -485,7 +501,7 @@ const translations = {
     liveVideoRecording: "நேரடி வீடியோ பதிவு",
     recordingInProgress: "பதிவு நடைபெறுகிறது...",
     videoNote: "வீடியோக்கள் தானாகவே பதிவேற்றப்படும் மற்றும் நீக்க முடியாது. அவசரங்களின் போது ஆதாரமாக பயன்படுத்தப்படும்.",
-    
+
     // Language
     language: "மொழி",
     english: "ENG",

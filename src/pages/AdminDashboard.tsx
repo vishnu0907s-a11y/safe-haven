@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter } from "lucide-react";
+import { AdminMap } from "@/components/AdminMap";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
@@ -39,7 +41,24 @@ export default function AdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [viewingProof, setViewingProof] = useState<UserRow | null>(false as any);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [tab, setTab] = useState<"overview" | "users" | "onduty" | "evidence" | "alerts">("overview");
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isDashboard = location.pathname === "/admin" || location.pathname === "/admin/";
+
+  const [tab, setTab] = useState<"users" | "alerts" | "evidence" | "map">(() => {
+    if (location.pathname.includes("/admin/users")) return "users";
+    if (location.pathname.includes("/admin/evidence")) return "evidence";
+    if (location.pathname.includes("/admin/map")) return "map";
+    return "alerts";
+  });
+
+  useEffect(() => {
+    if (location.pathname.includes("/admin/users")) setTab("users");
+    else if (location.pathname.includes("/admin/evidence")) setTab("evidence");
+    else if (location.pathname.includes("/admin/map")) setTab("map");
+    else setTab("alerts");
+  }, [location.pathname]);
 
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
@@ -161,48 +180,66 @@ export default function AdminDashboard() {
 
   return (
     <div className="px-4 space-y-4 pb-4">
-      {/* Admin header */}
-      <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border animate-in fade-in duration-300">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-          {user.full_name.charAt(0)}
-        </div>
-        <div>
-          <p className="font-semibold text-sm">{user.full_name}</p>
-          <p className="text-[10px] text-muted-foreground">{t("administrator")}</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-2.5">
-        {statCards.map((s) => (
-          <div key={s.label} className="p-3 rounded-xl bg-card border">
-            <s.icon className={cn("w-4 h-4 mb-1.5", s.color)} />
-            <p className="text-xl font-bold">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+      {isDashboard && (
+        <>
+          {/* Admin header */}
+          <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border animate-in fade-in duration-300">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+              {user.full_name.charAt(0)}
+            </div>
+            <div>
+              <p className="font-semibold text-sm">{user.full_name}</p>
+              <p className="text-[10px] text-muted-foreground">{t("administrator")}</p>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        {(["overview", "users", "alerts", "evidence"] as const).map((t_tab) => (
-          <button
-            key={t_tab}
-            onClick={() => setTab(t_tab)}
-            className={cn(
-              "px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors",
-              tab === t_tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-            )}
-          >
-            {t_tab === "overview" ? "Overview" : t_tab === "users" ? t("allUsers") : t_tab === "alerts" ? t("alerts") : t("evidence")}
-          </button>
-        ))}
-      </div>
+          {/* Tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {(["alerts", "map", "users", "evidence"] as const).map((t_tab) => (
+              <button
+                key={t_tab}
+                onClick={() => navigate(`/admin/${t_tab}`)}
+                className={cn(
+                  "px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors",
+                  tab === t_tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}
+              >
+                {t_tab === "alerts" ? t("alerts") : t_tab === "map" ? "Map" : t_tab === "users" ? t("allUsers") : t("evidence")}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* OVERVIEW TAB — stats only, no user/evidence lists */}
-      {tab === "overview" && (
-        <div className="space-y-3">
-          {/* On-duty rescuers summary */}
+      {/* MAP TAB */}
+      {tab === "map" && (
+        <div className="space-y-4">
+          <AdminMap alerts={adminAlerts} rescuers={onDutyRescuers} />
+        </div>
+      )}
+
+      {/* ALERTS TAB */}
+      {tab === "alerts" && (
+        <div className="space-y-4">
+          {/* Alert Stats - moved from top */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/10">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase">{t("activeAlerts")}</p>
+              </div>
+              <p className="text-xl font-bold text-destructive">{stats.active}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-warning/5 border border-warning/10">
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="w-3.5 h-3.5 text-warning" />
+                <p className="text-[10px] text-muted-foreground font-medium uppercase">{t("onDuty")}</p>
+              </div>
+              <p className="text-xl font-bold text-warning">{onDutyRescuers.length}</p>
+            </div>
+          </div>
+
+          {/* On-duty rescuers list */}
           <div className="p-4 rounded-xl bg-card border">
             <div className="flex items-center gap-2 mb-3">
               <Shield className="w-4 h-4 text-accent" />
@@ -213,40 +250,61 @@ export default function AdminDashboard() {
               <p className="text-xs text-muted-foreground">{t("noRescuersOnDuty")}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {onDutyRescuers.slice(0, 6).map((r) => (
+                {onDutyRescuers.map((r) => (
                   <div key={r.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary text-xs">
                     <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    <span className="font-medium truncate max-w-[80px]">{r.full_name}</span>
+                    <span className="font-medium truncate max-w-[120px]">{r.full_name}</span>
+                    <span className="text-[9px] text-muted-foreground capitalize">({r.role})</span>
                   </div>
                 ))}
-                {onDutyRescuers.length > 6 && (
-                  <span className="text-xs text-muted-foreground self-center">+{onDutyRescuers.length - 6} more</span>
-                )}
               </div>
             )}
           </div>
 
-          {/* Recent alerts summary */}
-          <div className="p-4 rounded-xl bg-card border">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="w-4 h-4 text-destructive" />
-              <p className="text-sm font-semibold">{t("alerts")}</p>
+              <p className="text-sm font-semibold">{t("emergencyAlerts")}</p>
             </div>
-            {adminAlerts.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{t("noPastAlerts")}</p>
-            ) : (
-              <div className="space-y-2">
-                {adminAlerts.slice(0, 3).map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 text-xs">
-                    <div className={cn("w-2 h-2 rounded-full", a.status === "active" ? "bg-destructive" : "bg-accent")} />
-                    <span className="font-medium truncate flex-1">{a.user_name}</span>
-                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
-                  </div>
-                ))}
-                {adminAlerts.length > 3 && (
-                  <button onClick={() => setTab("alerts")} className="text-xs text-primary font-medium">View all →</button>
-                )}
+            <div className="flex gap-1.5 mb-2">
+              {(["all", "active", "resolved"] as const).map((f) => (
+                <button key={f} onClick={() => setAlertFilter(f)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium", alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
+                  {f === "all" ? t("all") : f === "active" ? t("active") : t("resolved")}
+                </button>
+              ))}
+            </div>
+            {filteredAlerts.length === 0 ? (
+              <div className="p-8 rounded-xl bg-card border text-center">
+                <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
+                <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
               </div>
+            ) : (
+              filteredAlerts.map((alert) => (
+                <div key={alert.id} className={cn("p-3.5 rounded-xl border", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                      {alert.user_name?.charAt(0) || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{alert.user_name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                        {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
+                      </span>
+                      <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{(alert.accepted_by || []).length} {t("responders")}</span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -254,96 +312,71 @@ export default function AdminDashboard() {
 
       {/* USERS TAB */}
       {tab === "users" && (
-        <div>
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder={t("searchUsers")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+        <div className="space-y-4">
+          {/* User Stats - moved from top */}
+          <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("totalUsers")}</p>
+                <p className="text-xl font-bold text-primary">{stats.total}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("verified")}</p>
+              <p className="text-sm font-bold text-accent">{stats.verified}</p>
+            </div>
           </div>
-          <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 no-scrollbar">
-            {["all", "women", "driver", "police", "protector", "verified", "pending"].map((f) => (
-              <button key={f} onClick={() => setFilter(f)} className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap", filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
-          {loadingUsers ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
-          ) : (
-            <div className="space-y-2">
-              {filtered.map((u) => (
-                <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border">
-                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold">{u.full_name.charAt(0)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{u.full_name}</p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{u.role} • {u.city || "N/A"}</p>
-                  </div>
-                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full",
-                    u.verification_status === "verified" && "bg-accent/10 text-accent",
-                    u.verification_status === "pending" && "bg-warning/10 text-warning",
-                    u.verification_status === "rejected" && "bg-destructive/10 text-destructive",
-                  )}>{u.verification_status}</span>
-                  <div className="flex gap-0.5">
-                    {u.verification_status === "pending" && (
-                      <>
-                        <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-3.5 h-3.5 text-accent" /></button>
-                        <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-3.5 h-3.5 text-destructive" /></button>
-                      </>
-                    )}
-                    <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
-                    <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
-                  </div>
-                </div>
+
+          <div>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder={t("searchUsers")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+            </div>
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 no-scrollbar">
+              {["all", "women", "driver", "police", "protector", "verified", "pending"].map((f) => (
+                <button key={f} onClick={() => setFilter(f)} className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap", filter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
               ))}
             </div>
-          )}
+            {loadingUsers ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
+            ) : (
+              <div className="space-y-2">
+                {filtered.map((u) => (
+                  <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border">
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold">{u.full_name.charAt(0)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{u.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize">{u.role} • {u.city || "N/A"}</p>
+                    </div>
+                    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full",
+                      u.verification_status === "verified" && "bg-accent/10 text-accent",
+                      u.verification_status === "pending" && "bg-warning/10 text-warning",
+                      u.verification_status === "rejected" && "bg-destructive/10 text-destructive",
+                    )}>{u.verification_status}</span>
+                    <div className="flex gap-0.5">
+                      {u.verification_status === "pending" && (
+                        <>
+                          <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-3.5 h-3.5 text-accent" /></button>
+                          <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-3.5 h-3.5 text-destructive" /></button>
+                        </>
+                      )}
+                      <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                      <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* ALERTS TAB */}
-      {tab === "alerts" && (
-        <div className="space-y-3">
-          <div className="flex gap-1.5 mb-2">
-            {(["all", "active", "resolved"] as const).map((f) => (
-              <button key={f} onClick={() => setAlertFilter(f)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium", alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
-                {f === "all" ? t("all") : f === "active" ? t("active") : t("resolved")}
-              </button>
-            ))}
-          </div>
-          {filteredAlerts.length === 0 ? (
-            <div className="p-8 rounded-xl bg-card border text-center">
-              <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
-              <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
-            </div>
-          ) : (
-            filteredAlerts.map((alert) => (
-              <div key={alert.id} className={cn("p-3.5 rounded-xl border", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                    {alert.user_name?.charAt(0) || "?"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{alert.user_name}</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                      {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
-                    </span>
-                    <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
-                  </div>
-                </div>
-                <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{(alert.accepted_by || []).length} {t("responders")}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+
 
       {/* EVIDENCE TAB */}
       {tab === "evidence" && (() => {

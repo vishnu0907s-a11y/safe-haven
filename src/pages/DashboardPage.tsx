@@ -11,8 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
+
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import { Leaderboard } from "@/components/Leaderboard";
+import { FloatingActionMenu } from "@/components/FloatingActionMenu";
 
 function TelemetryCard() {
   const telemetry = useLiveTelemetry();
@@ -334,6 +337,14 @@ export default function DashboardPage() {
           </div>
         </button>
       </div>
+      
+      {isResponder && (
+        <div className="mt-6">
+          <Leaderboard />
+        </div>
+      )}
+
+      <FloatingActionMenu />
     </div>
   );
 }

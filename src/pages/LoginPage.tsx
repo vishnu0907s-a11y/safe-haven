@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, User, Car, ShieldCheck, Users, Lock, Upload, Loader2 } from "lucide-react";
 import { useAuth, type UserRole } from "@/lib/auth-context";
+import resqherLogo from "@/assets/logo.png";
 import { useTheme } from "@/lib/theme-context";
 import { useI18n } from "@/lib/i18n-context";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -189,16 +190,19 @@ export default function LoginPage() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
-        <div className="mb-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-            <ShieldCheck className="w-8 h-8 text-primary" />
+        <div className="mb-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="w-44 h-44 flex items-center justify-center animate-in zoom-in-95 duration-1000">
+            <img src={resqherLogo} alt="ResQHer Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight">
-            <span className="text-destructive">Res</span>
-            <span className="text-primary">Q</span>
-            <span className="text-destructive">Her</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2">{t("tagline")}</p>
+          <div className="flex flex-col items-center gap-2 mt-2">
+            <h1 className="text-5xl font-black tracking-tighter">
+              <span className="text-[#cbd5e1]">Res</span>
+              <span className="text-[#a855f7]">QHer</span>
+            </h1>
+            <p className="text-gray-400 font-bold text-base tracking-tight">
+              {t("tagline")}
+            </p>
+          </div>
         </div>
 
         {step === "role" && (

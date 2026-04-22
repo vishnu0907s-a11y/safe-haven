@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield, Info, Code, GraduationCap, BookOpen, User, Laptop } from "lucide-react";
+import resqherLogo from "@/assets/logo.png";
 import { useI18n } from "@/lib/i18n-context";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const safetyQuotes = [
   "Every woman deserves to walk freely without fear.",
@@ -34,24 +42,19 @@ export default function WelcomePage() {
 
   if (phase === "splash") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center splash-bg">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]">
         <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-700 px-8">
-          <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
-            <Shield className="w-10 h-10 text-primary" />
+          <div className="w-32 h-32 flex items-center justify-center">
+            <img src={resqherLogo} className="w-full h-full object-contain" alt="ResQHer Logo" />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-3xl font-black tracking-tight text-white">
-              Res<span className="text-primary">Q</span>Her
+            <h1 className="text-4xl font-black tracking-tight">
+              <span className="text-white">Res</span>
+              <span className="text-[#a855f7]">QHer</span>
             </h1>
-            <p className="text-white/40 text-xs tracking-widest uppercase font-semibold">
-              {t("tagline")}
-            </p>
           </div>
-          <p className="text-white/70 text-sm text-center max-w-[260px] leading-relaxed italic animate-in fade-in duration-500" key={quoteIdx}>
-            "{safetyQuotes[quoteIdx]}"
-          </p>
           <div className="mt-4">
-            <div className="w-7 h-7 border-[2.5px] border-white/20 border-t-primary rounded-full animate-spin" />
+            <div className="w-7 h-7 border-[2.5px] border-white/20 border-t-[#a855f7] rounded-full animate-spin" />
           </div>
         </div>
       </div>
@@ -59,38 +62,117 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-between px-6 py-10 max-w-lg mx-auto w-full animate-in fade-in duration-700">
-      <div className="flex items-center justify-between w-full">
-        <div />
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-between px-8 py-14 max-w-[420px] mx-auto w-full animate-in fade-in duration-700 relative overflow-hidden font-['Inter']">
+      {/* Top Navigation */}
+      <div className="flex items-center justify-between w-full absolute top-10 left-0 px-8 z-10">
+        <Dialog>
+          <DialogTrigger asChild>
+            <button className="w-12 h-12 rounded-full bg-[#1A1A1A] flex items-center justify-center text-gray-400 hover:bg-[#252525] transition-colors border border-white/5 shadow-lg">
+              <Info className="w-6 h-6" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md overflow-hidden bg-[#0A0A0A] border-white/10 text-white">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#a855f7] to-[#7c3aed]"></div>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold text-white">
+                <User className="w-5 h-5 text-[#a855f7]" />
+                About Us
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4 pb-2">
+              <div className="flex flex-col items-center gap-2 mb-6">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#7c3aed] p-1 shadow-lg shadow-purple-500/20">
+                  <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-[#a855f7] text-3xl font-black">
+                    V
+                  </div>
+                </div>
+                <div className="text-center">
+                  <h3 className="font-bold text-xl text-white">Developed by Vishnu</h3>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+                  <GraduationCap className="w-5 h-5 text-[#a855f7] mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">College</p>
+                    <p className="text-sm font-semibold mt-0.5 text-white">Madras Engineering College</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+                  <BookOpen className="w-5 h-5 text-[#a855f7] mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Studying</p>
+                    <p className="text-sm font-semibold mt-0.5 text-white">B.Tech Information Technology</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+                  <Laptop className="w-5 h-5 text-[#a855f7] mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Skills</p>
+                    <ul className="text-sm font-semibold mt-1 space-y-1 text-white">
+                      <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Full Stack Developer</li>
+                      <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Frontend Developer</li>
+                      <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Backend Developer</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         <LanguageToggle />
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-10">
-        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Shield className="w-10 h-10 text-primary" />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 py-10 w-full mt-20">
+        <div className="w-56 h-56 flex flex-col items-center justify-center animate-in zoom-in-95 duration-1000 relative">
+          <div className="absolute inset-0 bg-purple-500/10 blur-[60px] rounded-full"></div>
+          <img src={resqherLogo} className="w-full h-full object-contain relative z-10" alt="ResQHer Logo" />
+          
+          <div className="mt-[-20px] flex flex-col items-center relative z-10">
+            <h2 className="text-2xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 leading-none">
+              RESQHER
+            </h2>
+            <p className="text-[10px] font-black tracking-[0.4em] text-cyan-400 mt-1">
+              SAFETY APP
+            </p>
+          </div>
         </div>
-        <h1 className="text-2xl font-black tracking-tight">
-          Res<span className="text-primary">Q</span>Her
-        </h1>
-        <p className="text-muted-foreground text-sm text-center max-w-[280px] leading-relaxed">
-          {t("tagline")}
-        </p>
-        <div className="bg-primary/5 border border-primary/10 rounded-2xl px-5 py-4 max-w-[300px]">
-          <p className="text-sm text-center text-foreground/80 italic leading-relaxed">
+        
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <h1 className="text-4xl font-black tracking-tight flex items-center">
+            <span className="text-white">Res</span>
+            <span className="text-[#a855f7]">Q</span>
+            <span className="text-white">Her</span>
+          </h1>
+          <p className="text-gray-500 font-bold text-base tracking-normal">
+            Your Safety, Our Priority
+          </p>
+        </div>
+
+        <div className="bg-[#0F172A]/40 backdrop-blur-md border border-white/5 rounded-[24px] px-8 py-8 w-full max-w-[340px] mt-2 shadow-2xl">
+          <p className="text-sm text-center text-gray-300 italic leading-relaxed font-medium">
             "Every woman has the right to feel safe — anytime, anywhere."
           </p>
         </div>
       </div>
 
-      <div className="w-full space-y-4">
+      {/* Footer */}
+      <div className="w-full space-y-7 mt-auto">
         <button
           onClick={() => navigate("/login")}
-          className="w-full py-4 rounded-2xl font-bold text-base text-primary-foreground bg-primary hover:bg-primary/90 transition-colors active:scale-[0.98] shadow-sm"
+          className="w-full py-5 rounded-[20px] font-black text-lg text-white bg-[#5b21b6] hover:bg-[#4c1d95] transition-all active:scale-[0.98] shadow-2xl shadow-purple-950/50"
         >
-          {t("getStarted")}
+          Get Started
         </button>
-        <p className="text-center text-[11px] text-muted-foreground">{t("protectedBy")}</p>
+        <p className="text-center text-[12px] font-bold text-gray-600 tracking-tight">
+          Protected by ResQHer Security
+        </p>
       </div>
     </div>
   );
 }
+

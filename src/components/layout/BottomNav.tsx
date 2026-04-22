@@ -25,8 +25,8 @@ const responderNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { icon: LayoutDashboard, labelKey: "dashboard", path: "/admin" },
   { icon: Users, labelKey: "users", path: "/admin/users" },
+  { icon: Map, labelKey: "map", path: "/admin/map" },
   { icon: Bell, labelKey: "alerts", path: "/admin/alerts" },
-  { icon: Film, labelKey: "evidence", path: "/admin/evidence" },
   { icon: User, labelKey: "profile", path: "/profile" },
 ];
 
