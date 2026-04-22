@@ -90,7 +90,7 @@ export default function RecordPage() {
     // 3. Save metadata to evidence_videos table
     const { data: urlData } = supabase.storage.from("videos").getPublicUrl(fileName);
     
-    const { error: dbError } = await supabase.from("evidence_videos").insert({
+    const { error: dbError } = await supabase.from("evidence_videos" as any).insert({
       user_id: supabaseUser.id,
       storage_path: fileName,
       public_url: urlData.publicUrl,

@@ -17,123 +17,32 @@ export function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<"weekly" | "monthly" | "all-time">("all-time");
-  
-  // We'll store raw records so we don't have to refetch when filter changes
-  const [rawRecords, setRawRecords] = useState<any[]>([]);
-  const [alertMap, setAlertMap] = useState<Map<string, string>>(new Map());
-  const [profilesMap, setProfilesMap] = useState<Map<string, any>>(new Map());
-  const [rolesMap, setRolesMap] = useState<Map<string, string>>(new Map());
-
   useEffect(() => {
-    async function fetchInitialData() {
+    async function fetchLeaderboard() {
       setLoading(true);
-      // 1. Fetch all rescue records
-      const { data: records, error: recordsError } = await supabase
-        .from("rescue_records")
-        .select("responder_id, created_at, alert_id");
+      const { data, error } = await supabase.rpc("get_leaderboard_stats", {
+        time_filter: timeFilter,
+      });
 
-      if (recordsError || !records) {
-        setLoading(false);
-        return;
+      if (error || !data) {
+        console.error("Leaderboard fetch error:", error);
+        setEntries([]);
+      } else {
+        const mappedEntries: LeaderboardEntry[] = data.map((d: any) => ({
+          responder_id: d.responder_id,
+          full_name: d.full_name || "Unknown Rescuer",
+          role: d.role || "responder",
+          avatar_url: d.avatar_url,
+          totalRescues: Number(d.total_rescues),
+          avgResponseTime: Number(d.avg_response_time_ms) / (1000 * 60), // Convert ms to minutes
+        }));
+        setEntries(mappedEntries);
       }
-      setRawRecords(records);
-
-      // 2. Fetch alerts to calculate response time
-      const alertIds = [...new Set(records.map(r => r.alert_id))].filter(Boolean);
-      const { data: alerts } = await supabase
-        .from("emergency_alerts")
-        .select("id, created_at")
-        .in("id", alertIds);
-
-      const aMap = new Map((alerts || []).map(a => [a.id, a.created_at]));
-      setAlertMap(aMap);
-
-      // 3. Fetch profiles and roles
-      const responderIds = [...new Set(records.map(r => r.responder_id))];
-      if (responderIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, avatar_url")
-          .in("user_id", responderIds);
-
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", responderIds)
-          .in("role", ["driver", "protector"]); // Only drivers and protectors
-
-        const pMap = new Map((profiles || []).map(p => [p.user_id, p]));
-        const rMap = new Map((roles || []).map(r => [r.user_id, r.role]));
-        
-        setProfilesMap(pMap);
-        setRolesMap(rMap);
-      }
-
       setLoading(false);
     }
 
-    fetchInitialData();
-  }, []);
-
-  useEffect(() => {
-    if (loading) return;
-
-    // Filter records
-    const now = new Date();
-    const filteredRecords = rawRecords.filter(r => {
-      if (timeFilter === "all-time") return true;
-      if (!r.created_at) return true;
-      const recordDate = new Date(r.created_at);
-      const diffDays = (now.getTime() - recordDate.getTime()) / (1000 * 3600 * 24);
-      if (timeFilter === "weekly") return diffDays <= 7;
-      if (timeFilter === "monthly") return diffDays <= 30;
-      return true;
-    });
-
-    // Aggregate by responder
-    const aggregated: Record<string, { totalRescues: number; totalResponseTimeMs: number }> = {};
-    for (const r of filteredRecords) {
-      if (!aggregated[r.responder_id]) {
-        aggregated[r.responder_id] = { totalRescues: 0, totalResponseTimeMs: 0 };
-      }
-      aggregated[r.responder_id].totalRescues += 1;
-      
-      const alertCreatedAt = alertMap.get(r.alert_id);
-      let diffMs = 5 * 60 * 1000; // default 5 mins
-      if (alertCreatedAt && r.created_at) {
-        const diff = new Date(r.created_at).getTime() - new Date(alertCreatedAt).getTime();
-        if (diff > 0 && diff < 24 * 60 * 60 * 1000) { // sanity check, max 24h
-          diffMs = diff;
-        }
-      }
-      aggregated[r.responder_id].totalResponseTimeMs += diffMs;
-    }
-
-    // Combine and sort
-    const finalEntries: LeaderboardEntry[] = [];
-    for (const [responder_id, data] of Object.entries(aggregated)) {
-      if (rolesMap.has(responder_id)) {
-        const profile = profilesMap.get(responder_id);
-        const avgMs = data.totalResponseTimeMs / data.totalRescues;
-        finalEntries.push({
-          responder_id,
-          full_name: profile?.full_name || "Unknown Rescuer",
-          role: rolesMap.get(responder_id) || "responder",
-          avatar_url: profile?.avatar_url,
-          totalRescues: data.totalRescues,
-          avgResponseTime: avgMs / (1000 * 60), // in minutes
-        });
-      }
-    }
-
-    // Sort by total rescues (desc), then avg response time (asc)
-    finalEntries.sort((a, b) => {
-      if (b.totalRescues !== a.totalRescues) return b.totalRescues - a.totalRescues;
-      return a.avgResponseTime - b.avgResponseTime;
-    });
-
-    setEntries(finalEntries);
-  }, [timeFilter, rawRecords, alertMap, profilesMap, rolesMap, loading]);
+    fetchLeaderboard();
+  }, [timeFilter]);
 
   if (loading) {
     return (
