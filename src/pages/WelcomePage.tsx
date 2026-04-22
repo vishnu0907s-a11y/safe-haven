@@ -71,7 +71,7 @@ export default function WelcomePage() {
               <Info className="w-5 h-5" />
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-[90%] sm:max-w-[360px] overflow-hidden bg-[#0A0A0A] border-white/10 text-white rounded-3xl">
+          <DialogContent className="max-w-[85%] sm:max-w-[310px] overflow-hidden bg-[#0A0A0A] border-white/10 text-white rounded-3xl p-4">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#a855f7] to-[#7c3aed]"></div>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold text-white">
@@ -79,40 +79,40 @@ export default function WelcomePage() {
                 About Us
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 pt-2 pb-1">
-              <div className="flex flex-col items-center gap-2 mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#7c3aed] p-1 shadow-lg shadow-purple-500/20">
-                  <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-[#a855f7] text-2xl font-black">
+            <div className="space-y-2 pt-1 pb-1">
+              <div className="flex flex-col items-center gap-1 mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#7c3aed] p-1 shadow-lg shadow-purple-500/20">
+                  <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-[#a855f7] text-xl font-black">
                     V
                   </div>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-bold text-lg text-white">Developed by Vishnu</h3>
+                  <h3 className="font-bold text-base text-white">Developed by Vishnu</h3>
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
-                  <GraduationCap className="w-5 h-5 text-[#a855f7] mt-0.5" />
+              <div className="grid gap-1.5">
+                <div className="flex items-start gap-2 p-1.5 rounded-xl bg-[#151515] border border-white/5">
+                  <GraduationCap className="w-4 h-4 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">College</p>
-                    <p className="text-xs font-semibold mt-0.5 text-white">Madras Engineering College</p>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none">College</p>
+                    <p className="text-[11px] font-semibold mt-0.5 text-white">Madras Engineering College</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
-                  <BookOpen className="w-5 h-5 text-[#a855f7] mt-0.5" />
+                <div className="flex items-start gap-2 p-1.5 rounded-xl bg-[#151515] border border-white/5">
+                  <BookOpen className="w-4 h-4 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Current Studying</p>
-                    <p className="text-xs font-semibold mt-0.5 text-white">B.Tech Information Technology</p>
+                    <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none">Current Studying</p>
+                    <p className="text-[11px] font-semibold mt-0.5 text-white">B.Tech Information Technology</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
-                  <Laptop className="w-5 h-5 text-[#a855f7] mt-0.5" />
+                <div className="flex items-start gap-2 p-1.5 rounded-xl bg-[#151515] border border-white/5">
+                  <Laptop className="w-4 h-4 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Skills</p>
-                    <ul className="text-xs font-semibold mt-1 space-y-1 text-white">
+                    <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none">Skills</p>
+                    <ul className="text-[11px] font-semibold mt-0.5 space-y-0.5 text-white">
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Full Stack Developer</li>
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Frontend Developer</li>
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Backend Developer</li>
