@@ -189,37 +189,37 @@ export default function LoginPage() {
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-lg mx-auto w-full">
-        <div className="mb-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="w-44 h-44 flex items-center justify-center animate-in zoom-in-95 duration-1000">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 max-w-lg mx-auto w-full">
+        <div className="mb-6 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="w-32 h-32 flex items-center justify-center animate-in zoom-in-95 duration-1000">
             <img src={resqherLogo} alt="ResQHer Logo" className="w-full h-full object-contain" />
           </div>
-          <div className="flex flex-col items-center gap-2 mt-2">
-            <h1 className="text-5xl font-black tracking-tighter">
+          <div className="flex flex-col items-center gap-1 mt-1">
+            <h1 className="text-4xl font-black tracking-tighter">
               <span className="text-[#cbd5e1]">Res</span>
               <span className="text-[#a855f7]">QHer</span>
             </h1>
-            <p className="text-gray-400 font-bold text-base tracking-tight">
+            <p className="text-gray-400 font-bold text-sm tracking-tight">
               {t("tagline")}
             </p>
           </div>
         </div>
 
         {step === "role" && (
-          <div className="w-full space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-            <p className="label-caps text-center mb-4">{t("chooseRole")}</p>
+          <div className="w-full space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500">
+            <p className="label-caps text-center mb-2">{t("chooseRole")}</p>
             {roles.map((role, i) => (
               <button
                 key={role.id}
                 onClick={() => { setSelectedRole(role.id); setStep("login"); }}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl glass-card hover:gold-glow transition-all active:scale-[0.98] group"
+                className="w-full flex items-center gap-3 p-3 rounded-xl glass-card hover:gold-glow transition-all active:scale-[0.98] group"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", role.color)}>
-                  <role.icon className="w-5 h-5" />
+                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", role.color)}>
+                  <role.icon className="w-4 h-4" />
                 </div>
-                <span className="font-bold flex-1 text-left">{role.label}</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                <span className="font-bold flex-1 text-left text-sm">{role.label}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
               </button>
             ))}
           </div>
@@ -227,21 +227,21 @@ export default function LoginPage() {
 
         {(step === "login" || step === "register") && selectedRole && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-3 duration-400">
-            <button onClick={() => setStep("role")} className="text-sm text-muted-foreground hover:text-foreground mb-6 flex items-center gap-1 active:scale-95">
+            <button onClick={() => setStep("role")} className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 active:scale-95">
               {t("backToRole")}
             </button>
 
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-2 mb-4">
               {(() => {
                 const r = roles.find((r) => r.id === selectedRole)!;
                 return (
                   <>
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", r.color)}>
-                      <r.icon className="w-5 h-5" />
+                    <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", r.color)}>
+                      <r.icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="font-bold">{r.label}</p>
-                      <p className="label-caps">
+                      <p className="text-sm font-bold leading-tight">{r.label}</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                         {step === "login" ? t("signInToContinue") : t("createYourAccount")}
                       </p>
                     </div>
@@ -250,11 +250,11 @@ export default function LoginPage() {
               })()}
             </div>
 
-            <form onSubmit={step === "login" ? handleLogin : handleRegister} className="space-y-3">
+            <form onSubmit={step === "login" ? handleLogin : handleRegister} className="space-y-2.5">
               {step === "register" && roleFields()}
-              <Input type="email" placeholder={t("emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} required className="bg-secondary border-border/60" />
-              <Input type="password" placeholder={t("passwordPlaceholder")} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="bg-secondary border-border/60" />
-              <Button type="submit" className="w-full h-11 font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
+              <Input type="email" placeholder={t("emailPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} required className="h-10 bg-secondary border-border/60 text-sm" />
+              <Input type="password" placeholder={t("passwordPlaceholder")} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="h-10 bg-secondary border-border/60 text-sm" />
+              <Button type="submit" className="w-full h-10 font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 {step === "login" ? t("signIn") : t("createAccount")}
               </Button>
@@ -271,7 +271,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="text-center text-[11px] text-muted-foreground pb-6">{t("protectedBy")}</p>
+      <p className="text-center text-[10px] text-muted-foreground pb-4">{t("protectedBy")}</p>
     </div>
   );
 }
