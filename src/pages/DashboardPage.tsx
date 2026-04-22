@@ -38,7 +38,7 @@ function TelemetryCard() {
 }
 
 function AttendanceCard() {
-  const { activeShift, checkIn, checkOut, isEligible } = useAttendance();
+  const { activeShift, checkIn, checkOut, isEligible, checkingIn } = useAttendance();
   const { t } = useI18n();
   if (!isEligible) return null;
 
@@ -62,8 +62,17 @@ function AttendanceCard() {
           </button>
         </div>
       ) : (
-        <button onClick={checkIn} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-primary">
-          <LogIn className="w-4 h-4" /> {t("checkInStartDuty")}
+        <button 
+          onClick={checkIn} 
+          disabled={checkingIn}
+          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-primary disabled:opacity-70"
+        >
+          {checkingIn ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <LogIn className="w-4 h-4" />
+          )}
+          {checkingIn ? t("loading") : t("checkInStartDuty")}
         </button>
       )}
     </div>

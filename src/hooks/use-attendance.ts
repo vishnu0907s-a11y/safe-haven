@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { getFastLocation } from "@/lib/location-utils";
 
 interface AttendanceRecord {
   id: string;
@@ -38,12 +39,13 @@ export function useAttendance() {
       });
   }, [supabaseUser, isEligible]);
 
+  const [checkingIn, setCheckingIn] = useState(false);
+
   const checkIn = useCallback(async () => {
     if (!supabaseUser) return;
+    setCheckingIn(true);
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-      });
+      const position = await getFastLocation();
 
       const { data, error } = await supabase
         .from("attendance")
@@ -61,6 +63,8 @@ export function useAttendance() {
       toast.success("Checked in successfully!");
     } catch (err: any) {
       toast.error(err?.message || "Failed to check in");
+    } finally {
+      setCheckingIn(false);
     }
   }, [supabaseUser]);
 
@@ -79,5 +83,5 @@ export function useAttendance() {
     }
   }, [activeShift]);
 
-  return { activeShift, loading, checkIn, checkOut, isEligible };
+  return { activeShift, loading, checkIn, checkOut, isEligible, checkingIn };
 }

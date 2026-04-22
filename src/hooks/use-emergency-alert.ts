@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useAttendance } from "@/hooks/use-attendance";
 import { toast } from "sonner";
+import { getFastLocation } from "@/lib/location-utils";
 
 interface EmergencyAlert {
   id: string;
@@ -38,12 +39,10 @@ export function useSendEmergencyAlert() {
     if (!supabaseUser) return;
     setSending(true);
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        });
-      });
+      // Optimistically start the process
+      const positionPromise = getFastLocation();
+      
+      const position = await positionPromise;
 
       const { data, error } = await supabase
         .from("emergency_alerts")
@@ -57,7 +56,7 @@ export function useSendEmergencyAlert() {
         .single();
 
       if (error) throw error;
-      setActiveAlert(data);
+      setActiveAlert(data as any);
       toast.success("Emergency alert sent! Help is on the way.");
     } catch (err: any) {
       if (err?.code === 1) {
