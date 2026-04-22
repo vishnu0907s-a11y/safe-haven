@@ -182,8 +182,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+      <div className="absolute top-4 left-4 z-10">
         <LanguageToggle compact />
+      </div>
+
+      <div className="absolute top-4 right-4 z-10">
         <button onClick={toggle} className="p-2.5 rounded-full glass-card hover:gold-glow transition-all active:scale-95">
           {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
         </button>
