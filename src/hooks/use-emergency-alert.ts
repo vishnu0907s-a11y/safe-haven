@@ -23,6 +23,8 @@ export function useSendEmergencyAlert() {
 
   useEffect(() => {
     if (!supabaseUser) return;
+    
+    // Initial fetch
     supabase
       .from("emergency_alerts")
       .select("*")
@@ -33,6 +35,32 @@ export function useSendEmergencyAlert() {
       .then(({ data }) => {
         if (data && data.length > 0) setActiveAlert(data[0]);
       });
+
+    // Real-time subscription for this user's alerts
+    const channel = supabase
+      .channel(`my-active-alert-${supabaseUser.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "emergency_alerts",
+          filter: `user_id=eq.${supabaseUser.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as EmergencyAlert;
+          if (updated.status === "active") {
+            setActiveAlert(updated);
+          } else {
+            setActiveAlert(null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabaseUser]);
 
   const sendAlert = useCallback(async () => {

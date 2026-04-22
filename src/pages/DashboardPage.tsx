@@ -90,57 +90,114 @@ function RescueCompleteDialog({ responders, alertId, open, onClose }: { responde
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    for (const r of responders) {
-      const { data: records } = await supabase.from("rescue_records").select("id").eq("alert_id", alertId).eq("responder_id", r.user_id).limit(1);
-      if (records && records.length > 0) {
-        await rateResponder(records[0].id, ratings[r.user_id] || 5, feedbacks[r.user_id] || undefined);
+    try {
+      for (const r of responders) {
+        // Find the specific rescue record for this responder and alert
+        const { data: records } = await supabase
+          .from("rescue_records")
+          .select("id")
+          .eq("alert_id", alertId)
+          .eq("responder_id", r.user_id)
+          .limit(1);
+
+        if (records && records.length > 0) {
+          const rating = ratings[r.user_id] || 5;
+          const feedback = feedbacks[r.user_id] || "";
+          await rateResponder(records[0].id, rating, feedback);
+        }
       }
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting ratings:", error);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
-    setSubmitted(true);
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-accent" />
-            {submitted ? t("thankYou") : t("rescueCompleted")}
-          </DialogTitle>
-          <DialogDescription>{submitted ? t("feedbackSubmitted") : t("rateResponders")}</DialogDescription>
-        </DialogHeader>
-        {submitted ? (
-          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold glow-primary">{t("done")}</button>
-        ) : (
-          <div className="space-y-4">
-            {responders.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">{t("noRespondersToRate")}</p>
-            ) : responders.map((r) => (
-              <div key={r.user_id} className="p-3 rounded-xl bg-secondary/50 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">{r.full_name.charAt(0)}</div>
-                  <div>
-                    <p className="text-sm font-medium">{r.full_name}</p>
-                    <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <button key={s} onClick={() => setRatings((p) => ({ ...p, [r.user_id]: s }))} className="p-0.5 active:scale-90">
-                      <Star className={cn("w-5 h-5", s <= (ratings[r.user_id] || 0) ? "text-warning fill-warning" : "text-muted-foreground")} />
-                    </button>
-                  ))}
-                </div>
-                <textarea placeholder={t("writeFeedback")} value={feedbacks[r.user_id] || ""} onChange={(e) => setFeedbacks((p) => ({ ...p, [r.user_id]: e.target.value }))} className="w-full text-sm bg-background border border-border rounded-lg p-2 h-14 resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+    <Dialog open={open} onOpenChange={(val) => !submitting && !val && onClose()}>
+      <DialogContent className="max-w-md w-[95%] p-0 overflow-hidden border-none bg-background/95 backdrop-blur-xl shadow-2xl rounded-3xl">
+        <div className="bg-gradient-to-br from-primary/20 via-background to-accent/5 p-6 sm:p-8">
+          <DialogHeader className="text-center space-y-3 mb-6">
+            <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-2 glow-accent">
+              <ShieldCheck className="w-8 h-8 text-accent" />
+            </div>
+            <DialogTitle className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+              {submitted ? t("thankYou") : t("rescueCompleted")}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground font-medium">
+              {submitted ? t("feedbackSubmitted") : t("rateResponders")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {submitted ? (
+            <div className="space-y-6 text-center animate-in zoom-in-95 duration-300">
+              <div className="p-4 rounded-2xl bg-accent/5 border border-accent/10">
+                <p className="text-sm font-medium text-accent">Your feedback helps us recognize our heroes!</p>
               </div>
-            ))}
-            <button onClick={handleSubmit} disabled={submitting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-60 glow-primary">
-              {submitting ? t("submitting") : t("submitRatings")}
-            </button>
-            <button onClick={onClose} className="w-full py-1.5 text-xs text-muted-foreground">{t("skipForNow")}</button>
-          </div>
-        )}
+              <button onClick={onClose} className="w-full py-4 rounded-2xl bg-primary text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 active:scale-[0.98] transition-all glow-primary">
+                {t("done")}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="max-h-[40vh] overflow-y-auto px-1 space-y-4 custom-scrollbar">
+                {responders.length === 0 ? (
+                  <div className="py-12 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto opacity-50">
+                      <Navigation className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground font-medium italic">{t("noRespondersToRate")}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{responders.length} {t("responders")} helped you</p>
+                    {responders.map((r) => (
+                      <div key={r.user_id} className="p-4 rounded-2xl bg-secondary/30 border border-border/40 space-y-4 group transition-all hover:bg-secondary/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-black border border-primary/20 shadow-sm">{r.full_name.charAt(0)}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">{r.full_name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight opacity-70">{r.role}</p>
+                          </div>
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <button key={s} onClick={() => setRatings((p) => ({ ...p, [r.user_id]: s }))} className="p-0.5 transition-transform active:scale-75 hover:scale-110">
+                                <Star className={cn("w-5 h-5", s <= (ratings[r.user_id] || 5) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <textarea 
+                          placeholder={t("writeFeedback")} 
+                          value={feedbacks[r.user_id] || ""} 
+                          onChange={(e) => setFeedbacks((p) => ({ ...p, [r.user_id]: e.target.value }))} 
+                          className="w-full text-xs bg-background/50 border border-border/40 rounded-xl p-3 h-16 resize-none placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-3 pt-2">
+                <button 
+                  onClick={handleSubmit} 
+                  disabled={submitting || responders.length === 0} 
+                  className="w-full py-4 rounded-2xl bg-primary text-primary-foreground text-sm font-bold shadow-lg shadow-primary/25 disabled:opacity-50 active:scale-[0.98] transition-all glow-primary"
+                >
+                  {submitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>{t("submitting")}</span>
+                    </div>
+                  ) : t("submitRatings")}
+                </button>
+                <button onClick={onClose} className="w-full py-2 text-xs text-muted-foreground font-semibold hover:text-foreground transition-colors">{t("skipForNow")}</button>
+              </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -211,17 +268,38 @@ export default function DashboardPage() {
 
   const handleSafeNow = async () => {
     if (!activeAlert) return;
-    const responderIds = activeAlert.accepted_by || [];
+    
+    // Explicitly fetch the latest responder list just in case real-time was slow
+    const { data: latestAlert } = await supabase
+      .from("emergency_alerts")
+      .select("accepted_by")
+      .eq("id", activeAlert.id)
+      .single();
+
+    const responderIds = latestAlert?.accepted_by || activeAlert.accepted_by || [];
     let responderInfos: ResponderInfo[] = [];
+    
     if (responderIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", responderIds);
       const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", responderIds);
-      responderInfos = (profiles || []).map((p) => ({ user_id: p.user_id, full_name: p.full_name, role: roles?.find((r) => r.user_id === p.user_id)?.role || "responder" }));
+      
+      responderInfos = (profiles || []).map((p) => ({ 
+        user_id: p.user_id, 
+        full_name: p.full_name, 
+        role: roles?.find((r) => r.user_id === p.user_id)?.role || "responder" 
+      }));
     }
+
     setResolvedResponders(responderInfos);
     setResolvedAlertId(activeAlert.id);
+    
+    // Resolve the alert in DB
     await resolveAlert(activeAlert.id, responderIds);
+    
+    // Close the local state
     cancelAlert();
+    
+    // Show feedback dialog
     setShowFeedback(true);
   };
 
