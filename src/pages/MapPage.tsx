@@ -97,6 +97,12 @@ export default function MapPage() {
       attribution: '&copy; OSM &copy; CARTO',
     }).addTo(map);
     mapRef.current = map;
+
+    // Fix map not loading full screen on first render
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     return () => { map.remove(); mapRef.current = null; };
   }, []);
 
@@ -106,7 +112,7 @@ export default function MapPage() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => setMyPos([pos.coords.latitude, pos.coords.longitude]),
       () => setMyPos([20.5937, 78.9629]),
-      { enableHighAccuracy: true, maximumAge: 5000 }
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
@@ -166,9 +172,12 @@ export default function MapPage() {
     if (!alert) return;
     const victimPos: [number, number] = [alert.latitude, alert.longitude];
     routeLineRef.current = L.polyline([myPos, victimPos], {
-      color: "#FFD700", weight: 4, opacity: 0.9, dashArray: "10, 8",
+      color: "#FFD700", weight: 5, opacity: 0.9, dashArray: "12, 10",
     }).addTo(map);
-    map.fitBounds(L.latLngBounds([myPos, victimPos]), { padding: [60, 60] });
+    
+    // Smoothly fly to fit both positions
+    const bounds = L.latLngBounds([myPos, victimPos]);
+    map.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
   }, [trackingAlertId, myPos, alerts]);
 
   // Police stations toggle
@@ -247,8 +256,8 @@ export default function MapPage() {
   const signalColor = telemetry.signalStatus === "connected" ? "text-emerald-400" : telemetry.signalStatus === "weak" ? "text-primary" : "text-destructive";
 
   return (
-    <div className="fixed inset-0 z-0">
-      <div ref={mapContainerRef} className="absolute inset-0" />
+    <div className="absolute inset-0">
+      <div ref={mapContainerRef} className="absolute inset-0 z-0" />
 
       {/* Floating status bar */}
       <div className="absolute top-14 left-4 right-4 z-[1000] bg-background/80 backdrop-blur-xl rounded-2xl border border-border/30 px-4 py-3 flex items-center justify-between shadow-lg">
