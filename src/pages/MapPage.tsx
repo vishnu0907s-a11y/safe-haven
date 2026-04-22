@@ -6,6 +6,7 @@ import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZer
 import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useDangerZones } from "@/hooks/use-danger-zones";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
+import { useLiveLocationSubscribe } from "@/hooks/use-live-location-subscribe";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { getDistanceKm, getEta } from "@/lib/map-utils";
@@ -84,51 +85,22 @@ export default function MapPage() {
   const [policeStations, setPoliceStations] = useState<PoliceStation[]>([]);
   const [loadingPolice, setLoadingPolice] = useState(false);
   const [selectedResponderId, setSelectedResponderId] = useState<string | null>(null);
-  const [respondersLoc, setRespondersLoc] = useState<{ id: string; lat: number; lng: number; name?: string; role?: string }[]>([]);
 
-  // Fetch live responder locations for women
-  useEffect(() => {
-    if (user?.role !== "women" || alerts.length === 0) return;
-    const myAlert = alerts[0];
-    const acceptedIds = myAlert.accepted_by || [];
-    if (acceptedIds.length === 0) {
-      setRespondersLoc([]);
-      return;
-    }
+  // Get accepted responder IDs from the active alert (for women)
+  const activeAlertAcceptedIds = (user?.role === "women" && alerts.length > 0)
+    ? (alerts[0].accepted_by || [])
+    : [];
 
-    const fetchResponders = async () => {
-      const { data: attendance } = await supabase
-        .from("attendance")
-        .select("user_id, latitude, longitude")
-        .in("user_id", acceptedIds)
-        .eq("status", "active");
-      
-      if (attendance) {
-        const uids = attendance.map(a => a.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", uids);
-        
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", uids);
+  // Real-time responder locations via Supabase Realtime (replaces attendance polling)
+  const liveResponderLocations = useLiveLocationSubscribe(activeAlertAcceptedIds);
 
-        setRespondersLoc(attendance.map(d => ({ 
-          id: d.user_id, 
-          lat: d.latitude!, 
-          lng: d.longitude!,
-          name: profiles?.find(p => p.user_id === d.user_id)?.full_name || "Responder",
-          role: roles?.find(r => r.user_id === d.user_id)?.role || "protector"
-        })).filter(d => d.lat && d.lng));
-      }
-    };
-    
-    fetchResponders();
-    const interval = setInterval(fetchResponders, 5000);
-    return () => clearInterval(interval);
-  }, [user, alerts]);
+  const respondersLoc = liveResponderLocations.map(r => ({
+    id: r.user_id,
+    lat: r.latitude,
+    lng: r.longitude,
+    name: r.full_name || "Responder",
+    role: r.role || "protector",
+  }));
 
   // Auto-track alert from navigation state
   useEffect(() => {

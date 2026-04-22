@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n-context";
 import { useSendEmergencyAlert, useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useAttendance } from "@/hooks/use-attendance";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
+import { useLiveLocationBroadcast } from "@/hooks/use-live-location-broadcast";
 import { useEmergencyContacts } from "@/hooks/use-emergency-contacts";
 import { useResolveAlert } from "@/hooks/use-rescue-records";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,6 +216,9 @@ export default function DashboardPage() {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
 
   const isResponder = user ? ["driver", "police", "protector"].includes(user.role) : false;
+
+  // Broadcast live GPS to Supabase when on duty (responders only)
+  useLiveLocationBroadcast();
 
   useEffect(() => {
     if (!isResponder) return;
