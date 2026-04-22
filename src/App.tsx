@@ -19,6 +19,7 @@ import EmergencyContactsPage from "@/pages/EmergencyContactsPage";
 import PoliceStationsPage from "@/pages/PoliceStationsPage";
 import RecordPage from "@/pages/RecordPage";
 import NotFound from "@/pages/NotFound";
+import ComplaintPage from "@/pages/ComplaintPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="/police-stations" element={<PoliceStationsPage />} />
         <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/complaint" element={<ComplaintPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter } from "lucide-react";
+import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter, Plus, MessageSquare, Bell } from "lucide-react";
 import { AdminMap } from "@/components/AdminMap";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { getDistanceKm, getEta } from "@/lib/map-utils";
+import { useComplaints, Complaint } from "@/hooks/use-complaints";
 
 const ADMIN_LOCATION = { lat: 13.0827, lng: 80.2707 }; // Fixed admin location
 
@@ -71,6 +72,10 @@ export default function AdminDashboard() {
 
   const [adminAlerts, setAdminAlerts] = useState<AlertWithUser[]>([]);
   const [alertFilter, setAlertFilter] = useState<"all" | "active" | "resolved">("all");
+  const [adminFabOpen, setAdminFabOpen] = useState(false);
+  const [showComplaintsModal, setShowComplaintsModal] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const { complaints: adminComplaints, loading: complaintsLoading, resolveComplaint } = useComplaints();
 
   useEffect(() => {
     fetchUsers(); fetchOnDuty(); fetchStats(); fetchEvidence(); fetchAlerts();
@@ -466,6 +471,163 @@ export default function AdminDashboard() {
             <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 rounded-xl bg-secondary text-sm font-semibold">{t("cancel")}</button>
             <button onClick={() => deleteConfirm && handleDeleteUser(deleteConfirm)} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold">{t("delete")}</button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Floating Action Menu */}
+      <div className="fixed bottom-8 right-6 z-50 flex flex-col items-end gap-3">
+        {adminFabOpen && (
+          <div className="flex flex-col items-end gap-2.5 mb-2 animate-in slide-in-from-bottom-5 fade-in duration-200">
+            {/* Complaint Box */}
+            <button
+              onClick={() => { setShowComplaintsModal(true); setAdminFabOpen(false); }}
+              className="flex items-center gap-3 bg-card/95 backdrop-blur border shadow-xl rounded-full pr-1.5 pl-4 py-1.5 hover:bg-orange-500/10 transition-colors"
+            >
+              <span className="text-sm font-semibold">Complaint Box</span>
+              {adminComplaints.filter(c => c.status === "open").length > 0 && (
+                <span className="text-[9px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                  {adminComplaints.filter(c => c.status === "open").length}
+                </span>
+              )}
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-500/10 text-orange-500">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+            </button>
+
+            {/* Evidence */}
+            <button
+              onClick={() => { navigate("/admin/evidence"); setAdminFabOpen(false); }}
+              className="flex items-center gap-3 bg-card/95 backdrop-blur border shadow-xl rounded-full pr-1.5 pl-4 py-1.5 hover:bg-blue-500/10 transition-colors"
+            >
+              <span className="text-sm font-semibold">Evidence</span>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-500">
+                <Video className="w-5 h-5" />
+              </div>
+            </button>
+
+            {/* Emergency Alerts */}
+            <button
+              onClick={() => { navigate("/admin/alerts"); setAdminFabOpen(false); }}
+              className="flex items-center gap-3 bg-card/95 backdrop-blur border shadow-xl rounded-full pr-1.5 pl-4 py-1.5 hover:bg-destructive/10 transition-colors"
+            >
+              <span className="text-sm font-semibold">Emergency Alerts</span>
+              {stats.active > 0 && (
+                <span className="text-[9px] font-bold bg-destructive text-white px-1.5 py-0.5 rounded-full">{stats.active}</span>
+              )}
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-destructive/10 text-destructive">
+                <Bell className="w-5 h-5" />
+              </div>
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => setAdminFabOpen(!adminFabOpen)}
+          className={cn(
+            "w-14 h-14 rounded-full flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/30 transition-all duration-200 active:scale-95",
+            adminFabOpen ? "bg-secondary text-foreground rotate-45" : "bg-primary glow-primary"
+          )}
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Complaints Modal */}
+      <Dialog open={showComplaintsModal} onOpenChange={setShowComplaintsModal}>
+        <DialogContent className="max-w-lg w-[95%] max-h-[80vh] flex flex-col p-0 overflow-hidden border-none bg-background/95 backdrop-blur-xl rounded-3xl">
+          <div className="p-5 border-b border-border/50">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base font-black">
+                <MessageSquare className="w-5 h-5 text-orange-500" />
+                Complaint Box
+                {adminComplaints.filter(c => c.status === "open").length > 0 && (
+                  <span className="text-xs font-bold bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                    {adminComplaints.filter(c => c.status === "open").length} open
+                  </span>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-[11px]">Complaints from responders within 30 km radius</DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            {selectedComplaint ? (
+              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                <button
+                  onClick={() => setSelectedComplaint(null)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Back to list
+                </button>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                  <div className="w-10 h-10 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center text-sm font-black border border-orange-500/20">
+                    {selectedComplaint.profiles?.full_name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{selectedComplaint.profiles?.full_name || "Unknown User"}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedComplaint.profiles?.phone || "No phone"}</p>
+                  </div>
+                  <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full",
+                    selectedComplaint.status === "resolved" ? "bg-accent/10 text-accent" : "bg-orange-500/10 text-orange-500"
+                  )}>
+                    {selectedComplaint.status === "resolved" ? "✓ RESOLVED" : "OPEN"}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-base font-black">{selectedComplaint.title}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedComplaint.description}</p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    {new Date(selectedComplaint.created_at).toLocaleString()}
+                  </div>
+                </div>
+                {selectedComplaint.status === "open" && (
+                  <button
+                    onClick={() => { resolveComplaint(selectedComplaint.id); setSelectedComplaint({ ...selectedComplaint, status: "resolved" }); }}
+                    className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Mark as Resolved
+                  </button>
+                )}
+              </div>
+            ) : complaintsLoading ? (
+              <div className="py-10 text-center">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+              </div>
+            ) : adminComplaints.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto opacity-30" />
+                <p className="text-sm text-muted-foreground">No complaints within 30 km</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {adminComplaints.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedComplaint(c)}
+                    className="w-full text-left p-4 rounded-xl bg-card border hover:border-orange-500/30 hover:bg-orange-500/5 transition-all active:scale-[0.98] space-y-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center text-sm font-black border border-orange-500/20 shrink-0">
+                        {c.profiles?.full_name?.charAt(0) || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{c.profiles?.full_name || "Unknown User"}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</p>
+                      </div>
+                      <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0",
+                        c.status === "resolved" ? "bg-accent/10 text-accent" : "bg-orange-500/10 text-orange-500"
+                      )}>
+                        {c.status === "resolved" ? "✓" : "OPEN"}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold truncate">{c.title}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{c.description}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
