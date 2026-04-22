@@ -308,13 +308,15 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              {step === "login" ? (
-                <>{t("noAccount")} <button onClick={() => setStep("register")} className="text-primary font-bold hover:underline">{t("register")}</button></>
-              ) : (
-                <>{t("haveAccount")} <button onClick={() => setStep("login")} className="text-primary font-bold hover:underline">{t("signIn")}</button></>
-              )}
-            </p>
+            {selectedRole !== "admin" && (
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                {step === "login" ? (
+                  <>{t("noAccount")} <button onClick={() => setStep("register")} className="text-primary font-bold hover:underline">{t("register")}</button></>
+                ) : (
+                  <>{t("haveAccount")} <button onClick={() => setStep("login")} className="text-primary font-bold hover:underline">{t("signIn")}</button></>
+                )}
+              </p>
+            )}
           </div>
         )}
       </div>

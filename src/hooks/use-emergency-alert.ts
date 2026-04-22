@@ -186,7 +186,7 @@ export function useRealtimeAlerts() {
               setAlerts((prev) => prev.filter((a) => a.id !== updated.id));
             } else {
               setAlerts((prev) =>
-                prev.map((a) => (a.id === updated.id ? updated : a))
+                prev.map((a) => (a.id === updated.id ? { ...updated, profiles: a.profiles } : a))
               );
             }
           } else if (payload.eventType === "DELETE") {

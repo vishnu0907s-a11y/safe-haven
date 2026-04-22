@@ -61,29 +61,36 @@ export default function AlertsPage() {
               return (
                 <div key={alert.id} className="p-4 rounded-xl bg-card/80 backdrop-blur-lg border border-destructive/20 space-y-3 glow-destructive animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-destructive">🚨 {t("emergencyAlert")}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(alert.created_at).toLocaleString()}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-destructive/10 text-destructive border border-destructive/20 glow-destructive">
+                        {alert.profiles?.full_name?.charAt(0) || "?"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-destructive truncate">{alert.profiles?.full_name || t("emergencyAlert")}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(alert.created_at).toLocaleString()}</p>
+                      </div>
                     </div>
-                    <span className="text-[9px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-semibold">{accepted.length}/10</span>
+                    <span className="text-[9px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-semibold shrink-0">{accepted.length}/10</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="w-3 h-3" />
-                    <span>{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
-                    {dist !== null && (
-                      <span className="ml-auto text-accent font-medium">
-                        {dist.toFixed(1)} km ({getEta(dist)})
-                      </span>
-                    )}
+                  
+                  <div className="flex flex-col gap-1.5 text-xs mt-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span>{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                      </div>
+                      {dist !== null && (
+                        <span className="text-accent font-medium text-right shrink-0">
+                          {dist.toFixed(1)} km ({getEta(dist)})
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {alert.profiles && (
-                    <div className="p-2.5 rounded-lg bg-secondary/50 space-y-1">
+                  {alert.profiles?.phone && (
+                    <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50 mt-1">
                       <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t("victimDetails")}</p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">{alert.profiles.full_name}</p>
-                        {alert.profiles.phone && <a href={`tel:${alert.profiles.phone}`} className="text-xs text-primary font-semibold">{alert.profiles.phone}</a>}
-                      </div>
+                      <a href={`tel:${alert.profiles.phone}`} className="text-xs text-primary font-semibold hover:underline">{alert.profiles.phone}</a>
                     </div>
                   )}
 

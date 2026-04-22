@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MapPin, Phone, Video, X } from "lucide-react";
+import { Plus, MapPin, Phone, Video, X, Bell, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n-context";
+
+import { useAuth } from "@/lib/auth-context";
 
 export function FloatingActionMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { user } = useAuth();
 
-  const menuItems = [
+  const isResponder = user && ["driver", "police", "protector"].includes(user.role);
+
+  const menuItems = isResponder ? [
+    { icon: MessageSquare, label: t("raiseComplaint" as any) || "Raise Complaint", path: "/complaint", color: "text-orange-500", bg: "bg-orange-500/10" },
+    { icon: MapPin, label: t("liveMap") || "Live Map", path: "/map", color: "text-green-500", bg: "bg-green-500/10" },
+    { icon: Bell, label: t("alerts") || "Alerts", path: "/alerts", color: "text-red-500", bg: "bg-red-500/10" },
+  ] : [
     { icon: Phone, label: t("emergencyContacts") || "Contacts", path: "/emergency-contacts", color: "text-blue-500", bg: "bg-blue-500/10" },
-    { icon: MapPin, label: t("liveMap") || "Map", path: "/map", color: "text-green-500", bg: "bg-green-500/10" },
+    { icon: MapPin, label: t("liveMap") || "Live Map", path: "/map", color: "text-green-500", bg: "bg-green-500/10" },
     { icon: Video, label: t("recordVideo") || "Record", path: "/record", color: "text-red-500", bg: "bg-red-500/10" },
   ];
 
