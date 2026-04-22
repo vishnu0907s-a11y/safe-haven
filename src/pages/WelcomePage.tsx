@@ -67,8 +67,8 @@ export default function WelcomePage() {
       <div className="flex items-center justify-between w-full absolute top-10 left-0 px-8 z-10">
         <Dialog>
           <DialogTrigger asChild>
-            <button className="w-12 h-12 rounded-full bg-[#1A1A1A] flex items-center justify-center text-gray-400 hover:bg-[#252525] transition-colors border border-white/5 shadow-lg">
-              <Info className="w-6 h-6" />
+            <button className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-gray-400 hover:bg-[#252525] transition-colors border border-white/5 shadow-lg">
+              <Info className="w-5 h-5" />
             </button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md overflow-hidden bg-[#0A0A0A] border-white/10 text-white">

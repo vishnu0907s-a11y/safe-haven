@@ -6,13 +6,14 @@ export function LanguageToggle({ compact }: { compact?: boolean }) {
 
   return (
     <div className={cn(
-      "flex items-center rounded-full bg-[#1A1A1A] p-1 border border-white/5 shadow-lg overflow-hidden",
-      compact ? "text-[10px]" : "text-xs"
+      "flex items-center rounded-full bg-[#1A1A1A] p-0.5 border border-white/5 shadow-lg overflow-hidden shrink-0",
+      compact ? "text-[8px]" : "text-[10px]"
     )}>
       <button
         onClick={() => setLang("en")}
         className={cn(
-          "px-4 py-1.5 font-black transition-all rounded-full uppercase tracking-wider",
+          compact ? "px-1.5 py-0.5" : "px-2.5 py-1",
+          "font-black transition-all rounded-full uppercase tracking-wider",
           lang === "en"
             ? "bg-[#6D28D9] text-white shadow-lg"
             : "text-gray-500 hover:text-gray-300"
@@ -23,7 +24,8 @@ export function LanguageToggle({ compact }: { compact?: boolean }) {
       <button
         onClick={() => setLang("ta")}
         className={cn(
-          "px-4 py-1.5 font-black transition-all rounded-full tracking-wider",
+          compact ? "px-1.5 py-0.5" : "px-2.5 py-1",
+          "font-black transition-all rounded-full tracking-wider",
           lang === "ta"
             ? "bg-[#6D28D9] text-white shadow-lg"
             : "text-gray-500 hover:text-gray-300"

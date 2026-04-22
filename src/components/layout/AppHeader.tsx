@@ -11,16 +11,16 @@ export function AppHeader() {
   const { t } = useI18n();
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 glass-card border-b border-border/40">
-      <div className="flex items-center gap-3">
-        <img src={resqherLogo} alt="ResQHer" className="w-14 h-auto rounded-xl" />
-        <div>
-          <h1 className="text-base font-extrabold tracking-tight">
+    <header className="sticky top-0 z-50 flex items-center justify-between px-3 py-2.5 glass-card border-b border-border/40">
+      <div className="flex items-center gap-2 min-w-0">
+        <img src={resqherLogo} alt="ResQHer" className="w-12 h-auto rounded-xl shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-extrabold tracking-tight truncate">
             <span className="text-[#cbd5e1]">Res</span>
             <span className="text-[#a855f7]">QHer</span>
           </h1>
           {user && (
-            <p className="label-caps mt-0.5">{user.role} Portal</p>
+            <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5 truncate">{user.role} Portal</p>
           )}
         </div>
       </div>

@@ -179,7 +179,7 @@ export default function AdminDashboard() {
   if (!user) return null;
 
   return (
-    <div className="px-4 space-y-4 pb-4">
+    <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-4 md:space-y-8 pb-4 md:pb-8">
       {isDashboard && (
         <>
           {/* Admin header */}
@@ -222,20 +222,35 @@ export default function AdminDashboard() {
       {tab === "alerts" && (
         <div className="space-y-4">
           {/* Alert Stats - moved from top */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="p-3 md:p-5 rounded-xl bg-destructive/5 border border-destructive/10">
               <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
-                <p className="text-[10px] text-muted-foreground font-medium uppercase">{t("activeAlerts")}</p>
+                <AlertTriangle className="w-3.5 h-3.5 md:w-4 md:h-4 text-destructive" />
+                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("activeAlerts")}</p>
               </div>
-              <p className="text-xl font-bold text-destructive">{stats.active}</p>
+              <p className="text-xl md:text-3xl font-black text-destructive">{stats.active}</p>
             </div>
-            <div className="p-3 rounded-xl bg-warning/5 border border-warning/10">
+            <div className="p-3 md:p-5 rounded-xl bg-warning/5 border border-warning/10">
               <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-3.5 h-3.5 text-warning" />
-                <p className="text-[10px] text-muted-foreground font-medium uppercase">{t("onDuty")}</p>
+                <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-warning" />
+                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("onDuty")}</p>
               </div>
-              <p className="text-xl font-bold text-warning">{onDutyRescuers.length}</p>
+              <p className="text-xl md:text-3xl font-black text-warning">{onDutyRescuers.length}</p>
+            </div>
+            {/* Added for desktop balance */}
+            <div className="p-3 md:p-5 rounded-xl bg-primary/5 border border-primary/10 hidden lg:block">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
+                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("totalUsers")}</p>
+              </div>
+              <p className="text-xl md:text-3xl font-black text-primary">{stats.total}</p>
+            </div>
+            <div className="p-3 md:p-5 rounded-xl bg-accent/5 border border-accent/10 hidden lg:block">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-accent" />
+                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("verified")}</p>
+              </div>
+              <p className="text-xl md:text-3xl font-black text-accent">{stats.verified}</p>
             </div>
           </div>
 
@@ -279,32 +294,34 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
               </div>
             ) : (
-              filteredAlerts.map((alert) => (
-                <div key={alert.id} className={cn("p-3.5 rounded-xl border", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                      {alert.user_name?.charAt(0) || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{alert.user_name}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredAlerts.map((alert) => (
+                  <div key={alert.id} className={cn("p-4 rounded-xl border transition-all hover:shadow-md", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                        {alert.user_name?.charAt(0) || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{alert.user_name}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                          {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
+                        </span>
+                        <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                        {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
-                      </span>
-                      <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
+                    <div className="mt-3 text-[10px] text-muted-foreground flex items-center gap-1.5 border-t border-black/5 pt-3">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="font-medium">{(alert.accepted_by || []).length} {t("responders")}</span>
                     </div>
                   </div>
-                  <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{(alert.accepted_by || []).length} {t("responders")}</span>
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -345,28 +362,30 @@ export default function AdminDashboard() {
             {loadingUsers ? (
               <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filtered.map((u) => (
-                  <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border">
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold">{u.full_name.charAt(0)}</div>
+                  <div key={u.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-card border transition-all hover:shadow-md">
+                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">{u.full_name.charAt(0)}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{u.full_name}</p>
-                      <p className="text-[10px] text-muted-foreground capitalize">{u.role} • {u.city || "N/A"}</p>
+                      <p className="text-sm font-bold truncate">{u.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium capitalize">{u.role} • {u.city || "N/A"}</p>
                     </div>
-                    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full",
-                      u.verification_status === "verified" && "bg-accent/10 text-accent",
-                      u.verification_status === "pending" && "bg-warning/10 text-warning",
-                      u.verification_status === "rejected" && "bg-destructive/10 text-destructive",
-                    )}>{u.verification_status}</span>
-                    <div className="flex gap-0.5">
-                      {u.verification_status === "pending" && (
-                        <>
-                          <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-3.5 h-3.5 text-accent" /></button>
-                          <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-3.5 h-3.5 text-destructive" /></button>
-                        </>
-                      )}
-                      <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
-                      <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full",
+                        u.verification_status === "verified" && "bg-accent/10 text-accent",
+                        u.verification_status === "pending" && "bg-warning/10 text-warning",
+                        u.verification_status === "rejected" && "bg-destructive/10 text-destructive",
+                      )}>{u.verification_status.toUpperCase()}</span>
+                      <div className="flex gap-0.5">
+                        {u.verification_status === "pending" && (
+                          <>
+                            <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-4 h-4 text-accent" /></button>
+                            <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-4 h-4 text-destructive" /></button>
+                          </>
+                        )}
+                        <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-4 h-4 text-muted-foreground" /></button>
+                        <button onClick={() => setDeleteConfirm(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -417,19 +436,23 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
               </div>
             ) : (
-              fe.map((item, i) => (
-                <div key={i} className="p-3.5 rounded-xl bg-card border space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center"><Video className="w-4 h-4 text-destructive" /></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.user_name || "Unknown"}</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(item.created_at).toLocaleString()}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fe.map((item, i) => (
+                  <div key={i} className="p-4 rounded-xl bg-card border space-y-3 transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center"><Video className="w-5 h-5 text-destructive" /></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{item.user_name || "Unknown"}</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">{new Date(item.created_at).toLocaleString()}</p>
+                      </div>
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-lg bg-primary/10 text-primary active:scale-95 transition-colors hover:bg-primary/20"><Download className="w-4 h-4" /></a>
                     </div>
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-primary/10 text-primary active:scale-95"><Download className="w-4 h-4" /></a>
+                    <div className="relative aspect-video bg-black/90 rounded-lg overflow-hidden group">
+                      <video src={item.url} controls className="w-full h-full object-contain" preload="metadata" />
+                    </div>
                   </div>
-                  <video src={item.url} controls className="w-full rounded-lg bg-black/50 max-h-48" preload="metadata" />
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         );
