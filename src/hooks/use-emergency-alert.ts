@@ -88,18 +88,38 @@ export function useRealtimeAlerts() {
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isResponder = user && ["driver", "police", "protector"].includes(user.role);
-  // Only show alerts to on-duty rescuers
-  const isOnDuty = !!activeShift;
+  const isResponder = user && ["driver", "police", "protector", "admin"].includes(user.role);
+  // Only show alerts to on-duty rescuers (admins see all)
+  const isOnDuty = user?.role === "admin" || !!activeShift;
 
   const fetchAlerts = useCallback(async () => {
-    const { data } = await supabase
-      .from("emergency_alerts")
-      .select("*, profiles:user_id(full_name, phone)")
-      .eq("status", "active")
-      .order("created_at", { ascending: false });
-    if (data) setAlerts(data as any);
-    setLoading(false);
+    try {
+      const { data: rawAlerts } = await supabase
+        .from("emergency_alerts")
+        .select("*")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (rawAlerts && rawAlerts.length > 0) {
+        const uids = [...new Set(rawAlerts.map(a => a.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, phone")
+          .in("user_id", uids);
+
+        const enriched = rawAlerts.map(a => ({
+          ...a,
+          profiles: profiles?.find(p => p.user_id === a.user_id) || null
+        }));
+        setAlerts(enriched as any);
+      } else {
+        setAlerts([]);
+      }
+    } catch (err) {
+      console.error("Error fetching alerts:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -125,8 +145,11 @@ export function useRealtimeAlerts() {
               .eq("user_id", newAlert.user_id)
               .single();
             
-            const enrichedAlert = { ...newAlert, profiles: profile };
-            setAlerts((prev) => [enrichedAlert as any, ...prev]);
+            const enrichedAlert = { ...newAlert, profiles: profile || { full_name: "Unknown", phone: null } };
+            setAlerts((prev) => {
+              if (prev.find(a => a.id === enrichedAlert.id)) return prev;
+              return [enrichedAlert as any, ...prev];
+            });
             toast.warning(`🚨 New alert from ${profile?.full_name || "someone"}!`, { duration: 8000 });
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as EmergencyAlert;

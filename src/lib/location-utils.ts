@@ -20,7 +20,7 @@ export async function getFastLocation(options: LocationOptions = {}): Promise<Ge
           { enableHighAccuracy: false, timeout: 5000, maximumAge: 30000 }
         );
       },
-      { enableHighAccuracy, timeout: 4000, maximumAge } // Wait only 4s for high accuracy
+      { enableHighAccuracy, timeout: 1000, maximumAge } // Wait only 1s for high accuracy
     );
   });
 }
