@@ -241,8 +241,6 @@ export default function DashboardPage() {
           {user.verification_status === "verified" ? t("verified") : t("pending")}
         </span>
       </div>
-
-      {isResponder && <TelemetryCard />}
       <AttendanceCard />
 
       {/* SOS Section — Women — NO card wrapper, just the button with glow */}
