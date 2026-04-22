@@ -5,6 +5,7 @@ import { Locate, Search, Phone as PhoneIcon, Navigation, MapPin } from "lucide-r
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -94,20 +95,29 @@ export default function PoliceStationsPage() {
   const searchNearbyStations = useCallback(async (lat: number, lon: number) => {
     setLoadingStations(true);
     try {
-      const query = `[out:json][timeout:10];node["amenity"="police"](around:5000,${lat},${lon});out body;`;
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      const results: PoliceStation[] = (data.elements || []).map((el: any) => ({
-        id: el.id,
-        name: el.tags?.name || "Police Station",
-        lat: el.lat,
-        lon: el.lon,
-        address: el.tags?.["addr:street"] || el.tags?.["addr:full"] || "",
-        phone: el.tags?.phone || el.tags?.["contact:phone"] || "",
-      }));
-      setStations(results);
-      addStationMarkers(results);
-    } catch {
+      const { data, error } = await supabase.rpc("get_nearest_police_stations", {
+        user_lat: lat,
+        user_lon: lon,
+        max_count: 15
+      });
+
+      if (error) {
+        console.error("Error fetching police stations:", error);
+        setStations([]);
+      } else if (data) {
+        const results: PoliceStation[] = data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          lat: s.latitude,
+          lon: s.longitude,
+          address: s.address,
+          phone: s.phone,
+        }));
+        setStations(results);
+        addStationMarkers(results);
+      }
+    } catch (err) {
+      console.error(err);
       setStations([]);
     }
     setLoadingStations(false);

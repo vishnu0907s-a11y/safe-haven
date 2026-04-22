@@ -341,32 +341,32 @@ export default function MapPage() {
     setLoadingPolice(true);
     try {
       const [lat, lon] = myPos;
-      // Search in 10km radius for better results
-      const query = `[out:json][timeout:15];node["amenity"="police"](around:10000,${lat},${lon});out body;`;
-      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-      const data = await res.json();
       
-      let stations: PoliceStation[] = (data.elements || []).map((el: any) => ({
-        id: el.id,
-        name: el.tags?.name || "Police Station",
-        lat: el.lat,
-        lon: el.lon,
-        phone: el.tags?.phone || el.tags?.["contact:phone"],
-      }));
+      const { data, error } = await supabase.rpc("get_nearest_police_stations", {
+        user_lat: lat,
+        user_lon: lon,
+        max_count: 5
+      });
 
-      // Sort by distance and take top 3
-      stations = stations
-        .map(s => ({ ...s, distance: getDistanceKm(lat, lon, s.lat, s.lon) }))
-        .sort((a: any, b: any) => a.distance - b.distance)
-        .slice(0, 3);
+      if (error) throw error;
 
-      setPoliceStations(stations);
+      if (data) {
+        let stations: PoliceStation[] = data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          lat: s.latitude,
+          lon: s.longitude,
+          phone: s.phone,
+        }));
 
-      // Automatically fly to show these stations if any found
-      if (stations.length > 0 && mapRef.current) {
-        const bounds = L.latLngBounds([myPos]);
-        stations.forEach(s => bounds.extend([s.lat, s.lon]));
-        mapRef.current.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+        setPoliceStations(stations);
+
+        // Automatically fly to show these stations if any found
+        if (stations.length > 0 && mapRef.current) {
+          const bounds = L.latLngBounds([myPos]);
+          stations.forEach(s => bounds.extend([s.lat, s.lon]));
+          mapRef.current.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+        }
       }
     } catch (error) {
       console.error("Error fetching police stations:", error);
