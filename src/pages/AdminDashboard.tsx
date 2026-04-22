@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { getDistanceKm, getEta } from "@/lib/map-utils";
+
+const ADMIN_LOCATION = { lat: 13.0827, lng: 80.2707 }; // Fixed admin location
 
 interface UserRow {
   id: string; user_id: string; full_name: string; phone: string | null;
@@ -167,7 +170,15 @@ export default function AdminDashboard() {
     const mf = filter === "all" || u.role === filter || u.verification_status === filter;
     return ms && mf;
   });
-  const filteredAlerts = adminAlerts.filter(a => alertFilter === "all" || a.status === alertFilter);
+  const filteredAlerts = adminAlerts
+    .map(alert => {
+      const dist = getDistanceKm(ADMIN_LOCATION.lat, ADMIN_LOCATION.lng, alert.latitude, alert.longitude);
+      const eta = getEta(dist);
+      return { ...alert, distance: dist, eta };
+    })
+    .filter(a => alertFilter === "all" || a.status === alertFilter)
+    .filter(a => a.distance <= 30)
+    .sort((a, b) => a.distance - b.distance);
 
   const statCards = [
     { label: t("totalUsers"), value: stats.total, icon: Users, color: "text-primary" },
@@ -221,65 +232,10 @@ export default function AdminDashboard() {
       {/* ALERTS TAB */}
       {tab === "alerts" && (
         <div className="space-y-4">
-          {/* Alert Stats - moved from top */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-            <div className="p-3 md:p-5 rounded-xl bg-destructive/5 border border-destructive/10">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 md:w-4 md:h-4 text-destructive" />
-                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("activeAlerts")}</p>
-              </div>
-              <p className="text-xl md:text-3xl font-black text-destructive">{stats.active}</p>
-            </div>
-            <div className="p-3 md:p-5 rounded-xl bg-warning/5 border border-warning/10">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-3.5 h-3.5 md:w-4 md:h-4 text-warning" />
-                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("onDuty")}</p>
-              </div>
-              <p className="text-xl md:text-3xl font-black text-warning">{onDutyRescuers.length}</p>
-            </div>
-            {/* Added for desktop balance */}
-            <div className="p-3 md:p-5 rounded-xl bg-primary/5 border border-primary/10 hidden lg:block">
-              <div className="flex items-center gap-2 mb-1">
-                <Users className="w-3.5 h-3.5 md:w-4 md:h-4 text-primary" />
-                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("totalUsers")}</p>
-              </div>
-              <p className="text-xl md:text-3xl font-black text-primary">{stats.total}</p>
-            </div>
-            <div className="p-3 md:p-5 rounded-xl bg-accent/5 border border-accent/10 hidden lg:block">
-              <div className="flex items-center gap-2 mb-1">
-                <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-accent" />
-                <p className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase tracking-wider">{t("verified")}</p>
-              </div>
-              <p className="text-xl md:text-3xl font-black text-accent">{stats.verified}</p>
-            </div>
-          </div>
-
-          {/* On-duty rescuers list */}
-          <div className="p-4 rounded-xl bg-card border">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-accent" />
-              <p className="text-sm font-semibold">{t("onDutyRescuers")}</p>
-              <span className="ml-auto text-xs font-bold text-accent">{onDutyRescuers.length}</span>
-            </div>
-            {onDutyRescuers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{t("noRescuersOnDuty")}</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {onDutyRescuers.map((r) => (
-                  <div key={r.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary text-xs">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                    <span className="font-medium truncate max-w-[120px]">{r.full_name}</span>
-                    <span className="text-[9px] text-muted-foreground capitalize">({r.role})</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="w-4 h-4 text-destructive" />
-              <p className="text-sm font-semibold">{t("emergencyAlerts")}</p>
+              <p className="text-sm font-semibold">{t("emergencyAlerts")} (Within 30 KM)</p>
             </div>
             <div className="flex gap-1.5 mb-2">
               {(["all", "active", "resolved"] as const).map((f) => (
@@ -297,27 +253,37 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredAlerts.map((alert) => (
                   <div key={alert.id} className={cn("p-4 rounded-xl border transition-all hover:shadow-md", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                        {alert.user_name?.charAt(0) || "?"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{alert.user_name}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
+                          {alert.user_name?.charAt(0) || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">{alert.user_name}</p>
+                          <div className="flex flex-col gap-0.5 mt-0.5">
+                             <div className="flex items-center gap-1">
+                               <MapPin className="w-3 h-3 text-muted-foreground" />
+                               <span className="text-[10px] text-muted-foreground">{alert.distance.toFixed(1)} KM • {alert.eta}</span>
+                             </div>
+                             <span className="text-[9px] text-muted-foreground">{new Date(alert.created_at).toLocaleString()}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      
+                      <div className="flex flex-col items-end gap-2 shrink-0">
                         <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
                           {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
                         </span>
-                        <p className="text-[9px] text-muted-foreground mt-1">{new Date(alert.created_at).toLocaleString()}</p>
+                        <button 
+                          onClick={() => {
+                            const link = `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent('Emergency Location: ' + link)}`, '_blank');
+                          }}
+                          className="px-3 py-1 rounded-lg text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
+                        >
+                          Share
+                        </button>
                       </div>
-                    </div>
-                    <div className="mt-3 text-[10px] text-muted-foreground flex items-center gap-1.5 border-t border-black/5 pt-3">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="font-medium">{(alert.accepted_by || []).length} {t("responders")}</span>
                     </div>
                   </div>
                 ))}
