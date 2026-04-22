@@ -83,7 +83,8 @@ export default function MapPage() {
   const [showPolice, setShowPolice] = useState(false);
   const [policeStations, setPoliceStations] = useState<PoliceStation[]>([]);
   const [loadingPolice, setLoadingPolice] = useState(false);
-  const [respondersLoc, setRespondersLoc] = useState<{ id: string; lat: number; lng: number }[]>([]);
+  const [selectedResponderId, setSelectedResponderId] = useState<string | null>(null);
+  const [respondersLoc, setRespondersLoc] = useState<{ id: string; lat: number; lng: number; name?: string; role?: string }[]>([]);
 
   // Fetch live responder locations for women
   useEffect(() => {
@@ -96,14 +97,31 @@ export default function MapPage() {
     }
 
     const fetchResponders = async () => {
-      const { data } = await supabase
+      const { data: attendance } = await supabase
         .from("attendance")
         .select("user_id, latitude, longitude")
         .in("user_id", acceptedIds)
         .eq("status", "active");
       
-      if (data) {
-        setRespondersLoc(data.map(d => ({ id: d.user_id, lat: d.latitude!, lng: d.longitude! })).filter(d => d.lat && d.lng));
+      if (attendance) {
+        const uids = attendance.map(a => a.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", uids);
+        
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", uids);
+
+        setRespondersLoc(attendance.map(d => ({ 
+          id: d.user_id, 
+          lat: d.latitude!, 
+          lng: d.longitude!,
+          name: profiles?.find(p => p.user_id === d.user_id)?.full_name || "Responder",
+          role: roles?.find(r => r.user_id === d.user_id)?.role || "protector"
+        })).filter(d => d.lat && d.lng));
       }
     };
     
@@ -206,10 +224,35 @@ export default function MapPage() {
       });
       respondersLoc.forEach(r => {
         const pos: [number, number] = [r.lat, r.lng];
+        const dist = myPos ? getDistanceKm(myPos[0], myPos[1], r.lat, r.lng) : 0;
+        const eta = getEta(dist);
+
         if (responderMarkersRef.current.has(r.id)) {
           responderMarkersRef.current.get(r.id)!.setLatLng(pos);
         } else {
           const marker = L.marker(pos, { icon: rescuerIcon }).addTo(map);
+          marker.on('click', () => {
+            setSelectedResponderId(r.id);
+            marker.bindPopup(`
+              <div style="font-family:Inter,sans-serif;min-width:160px;padding:4px;">
+                <p style="font-weight:800;font-size:14px;margin:0 0 4px;color:#1e293b;">${r.name}</p>
+                <p style="font-size:10px;color:rgba(0,0,0,0.5);text-transform:uppercase;font-weight:700;margin-bottom:8px;">${r.role}</p>
+                <div style="background:#f0fdf4;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:between;gap:8px;border:1px solid #bbf7d0;">
+                   <div style="flex:1;">
+                      <p style="font-size:9px;color:#166534;font-weight:600;margin:0;">ETA</p>
+                      <p style="font-size:13px;color:#166534;font-weight:800;margin:0;">${eta}</p>
+                   </div>
+                   <div style="text-align:right;">
+                      <p style="font-size:9px;color:#166534;font-weight:600;margin:0;">DIST</p>
+                      <p style="font-size:11px;color:#166534;font-weight:700;margin:0;">${dist.toFixed(1)} km</p>
+                   </div>
+                </div>
+                <button onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}', '_blank')" style="width:100%;margin-top:10px;padding:8px;background:#22c55e;color:white;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+                   <span>🧭</span> ${t("getDirections")}
+                </button>
+              </div>
+            `).openPopup();
+          });
           responderMarkersRef.current.set(r.id, marker);
         }
       });
@@ -247,9 +290,19 @@ export default function MapPage() {
 
     if (user?.role === "women") {
       if (respondersLoc.length === 0) return;
-      const lines = respondersLoc.map(r => L.polyline([myPos, [r.lat, r.lng]], {
-        color: "#22c55e", weight: 5, opacity: 0.9, dashArray: "12, 10"
-      }).addTo(map));
+      
+      const lines: L.Polyline[] = [];
+      respondersLoc.forEach(r => {
+        const isSelected = selectedResponderId === r.id;
+        const line = L.polyline([myPos, [r.lat, r.lng]], {
+          color: isSelected ? "#22c55e" : "#22c55e",
+          weight: isSelected ? 6 : 4,
+          opacity: isSelected ? 1 : 0.4,
+          dashArray: isSelected ? "none" : "12, 10"
+        }).addTo(map);
+        lines.push(line);
+      });
+      
       routeLineRef.current = lines as any;
       
       const bounds = L.latLngBounds([myPos]);
@@ -285,17 +338,27 @@ export default function MapPage() {
     if (!showPolice || policeStations.length === 0) return;
 
     policeStations.forEach((station) => {
+      const dist = myPos ? getDistanceKm(myPos[0], myPos[1], station.lat, station.lon) : 0;
+      const distStr = dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)} km`;
+
       const marker = L.marker([station.lat, station.lon], { icon: policeIcon })
         .addTo(map)
         .bindPopup(`
-          <div style="font-family:Inter,sans-serif;min-width:160px;">
-            <p style="font-weight:700;font-size:13px;margin:0 0 6px;">${station.name || "Police Station"}</p>
-            <div style="display:flex;gap:6px;">
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}" target="_blank" style="flex:1;text-align:center;padding:6px;background:#eab308;color:#000;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;">${t("getDirections")}</a>
-              ${station.phone ? `<a href="tel:${station.phone}" style="flex:1;text-align:center;padding:6px;background:#3b82f6;color:#fff;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;">${t("callStation")}</a>` : ""}
+          <div style="font-family:Inter,sans-serif;min-width:180px;padding:2px;">
+            <div style="display:flex;justify-content:between;align-items:center;margin-bottom:8px;">
+              <p style="font-weight:800;font-size:14px;margin:0;color:#1e293b;">${station.name || "Police Station"}</p>
+              <span style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:4px;font-weight:600;">${distStr}</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}" target="_blank" style="flex:1;text-align:center;padding:8px;background:#eab308;color:#000;border-radius:10px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;">
+                <span>📍</span> ${t("getDirections")}
+              </a>
+              ${station.phone ? `<a href="tel:${station.phone}" style="flex:1;text-align:center;padding:8px;background:#3b82f6;color:#fff;border-radius:10px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:4px;">
+                <span>📞</span> ${t("callStation")}
+              </a>` : ""}
             </div>
           </div>
-        `);
+        `, { className: 'modern-popup' });
       policeMarkersRef.current.push(marker);
     });
   }, [showPolice, policeStations, t]);
@@ -306,18 +369,35 @@ export default function MapPage() {
     setLoadingPolice(true);
     try {
       const [lat, lon] = myPos;
-      const query = `[out:json][timeout:10];node["amenity"="police"](around:5000,${lat},${lon});out body;`;
+      // Search in 10km radius for better results
+      const query = `[out:json][timeout:15];node["amenity"="police"](around:10000,${lat},${lon});out body;`;
       const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
       const data = await res.json();
-      const stations: PoliceStation[] = (data.elements || []).map((el: any) => ({
+      
+      let stations: PoliceStation[] = (data.elements || []).map((el: any) => ({
         id: el.id,
         name: el.tags?.name || "Police Station",
         lat: el.lat,
         lon: el.lon,
         phone: el.tags?.phone || el.tags?.["contact:phone"],
       }));
+
+      // Sort by distance and take top 3
+      stations = stations
+        .map(s => ({ ...s, distance: getDistanceKm(lat, lon, s.lat, s.lon) }))
+        .sort((a: any, b: any) => a.distance - b.distance)
+        .slice(0, 3);
+
       setPoliceStations(stations);
-    } catch {
+
+      // Automatically fly to show these stations if any found
+      if (stations.length > 0 && mapRef.current) {
+        const bounds = L.latLngBounds([myPos]);
+        stations.forEach(s => bounds.extend([s.lat, s.lon]));
+        mapRef.current.flyToBounds(bounds, { padding: [80, 80], duration: 1.5 });
+      }
+    } catch (error) {
+      console.error("Error fetching police stations:", error);
       setPoliceStations([]);
     }
     setLoadingPolice(false);

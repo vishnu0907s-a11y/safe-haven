@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MapPin, Phone, Mic, X } from "lucide-react";
+import { Plus, MapPin, Phone, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n-context";
 
@@ -12,7 +12,7 @@ export function FloatingActionMenu() {
   const menuItems = [
     { icon: Phone, label: t("emergencyContacts") || "Contacts", path: "/emergency-contacts", color: "text-blue-500", bg: "bg-blue-500/10" },
     { icon: MapPin, label: t("liveMap") || "Map", path: "/map", color: "text-green-500", bg: "bg-green-500/10" },
-    { icon: Mic, label: t("recordVideo") || "Record", path: "/record", color: "text-red-500", bg: "bg-red-500/10" },
+    { icon: Video, label: t("recordVideo") || "Record", path: "/record", color: "text-red-500", bg: "bg-red-500/10" },
   ];
 
   return (
