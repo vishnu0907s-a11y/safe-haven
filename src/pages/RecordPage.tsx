@@ -3,6 +3,7 @@ import { Video, StopCircle, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { supabase } from "@/integrations/supabase/client";
+import { getFastLocation } from "@/lib/location-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -64,11 +65,45 @@ export default function RecordPage() {
   const uploadVideo = async (blob: Blob) => {
     if (!supabaseUser) return;
     setUploading(true);
+    
+    // 1. Get location if possible
+    let lat: number | null = null;
+    let lng: number | null = null;
+    try {
+      const pos = await getFastLocation();
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch {
+      console.warn("Could not get GPS for evidence metadata");
+    }
+
+    // 2. Upload to storage
     const fileName = `${supabaseUser.id}/evidence-${Date.now()}.webm`;
-    const { error } = await supabase.storage.from("videos").upload(fileName, blob);
-    setUploading(false);
-    if (error) {
+    const { error: uploadError } = await supabase.storage.from("videos").upload(fileName, blob);
+    
+    if (uploadError) {
+      setUploading(false);
       toast.error(t("videoUploadFailed"));
+      return;
+    }
+
+    // 3. Save metadata to evidence_videos table
+    const { data: urlData } = supabase.storage.from("videos").getPublicUrl(fileName);
+    
+    const { error: dbError } = await supabase.from("evidence_videos").insert({
+      user_id: supabaseUser.id,
+      storage_path: fileName,
+      public_url: urlData.publicUrl,
+      latitude: lat,
+      longitude: lng
+    } as any);
+
+    setUploading(false);
+    
+    if (dbError) {
+      console.error("Failed to save evidence metadata:", dbError);
+      // We don't fail completely since the file is in storage, but we warn
+      toast.error("Video uploaded, but failed to save details.");
     } else {
       toast.success(t("videoSaved"));
     }

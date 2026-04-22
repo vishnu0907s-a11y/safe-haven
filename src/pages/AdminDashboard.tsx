@@ -115,28 +115,48 @@ export default function AdminDashboard() {
   const fetchEvidence = async () => {
     setLoadingEvidence(true);
     try {
-      const { data: files } = await supabase.storage.from("videos").list("", { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      if (!files) { setEvidence([]); setLoadingEvidence(false); return; }
-      const allEvidence: EvidenceItem[] = [];
-      const folders = files.filter(f => !f.name.includes('.')).map(f => f.name);
-      for (const folder of folders) {
-        const { data: userFiles } = await supabase.storage.from("videos").list(folder, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
-        if (userFiles) {
-          for (const file of userFiles) {
-            if (file.name.includes('.')) {
-              const { data: urlData } = supabase.storage.from("videos").getPublicUrl(`${folder}/${file.name}`);
-              allEvidence.push({ name: file.name, created_at: file.created_at || new Date().toISOString(), user_id: folder, url: urlData?.publicUrl || "" });
-            }
-          }
+      // 1. Fetch from DB
+      const { data: dbEvidence, error } = await supabase
+        .from("evidence_videos" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error || !dbEvidence) {
+        setEvidence([]);
+        setLoadingEvidence(false);
+        return;
+      }
+
+      // 2. Fetch profiles
+      const uids = [...new Set(dbEvidence.map((e: any) => e.user_id))];
+      let profilesMap = new Map();
+      
+      if (uids.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", uids);
+          
+        if (profiles) {
+          profilesMap = new Map(profiles.map(p => [p.user_id, p.full_name]));
         }
       }
-      const uids = [...new Set(allEvidence.map(e => e.user_id))];
-      if (uids.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", uids);
-        allEvidence.forEach(e => { e.user_name = profiles?.find(p => p.user_id === e.user_id)?.full_name || "Unknown"; });
-      }
-      setEvidence(allEvidence);
-    } catch { setEvidence([]); }
+
+      // 3. Map to UI format
+      const formattedEvidence: EvidenceItem[] = dbEvidence.map((e: any) => ({
+        name: e.storage_path.split("/").pop() || "Video",
+        created_at: e.created_at,
+        user_id: e.user_id,
+        user_name: profilesMap.get(e.user_id) || "Unknown",
+        url: e.public_url
+      }));
+
+      setEvidence(formattedEvidence);
+    } catch (err) {
+      console.error("Error fetching evidence:", err);
+      setEvidence([]);
+    }
     setLoadingEvidence(false);
   };
 
