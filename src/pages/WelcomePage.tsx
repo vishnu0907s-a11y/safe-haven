@@ -45,7 +45,7 @@ export default function WelcomePage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]">
         <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-700 px-8">
           <div className="w-32 h-32 flex items-center justify-center">
-            <img src={resqherLogo} className="w-full h-full object-contain" alt="ResQHer Logo" />
+            <img src={resqherLogo} className="w-full h-full object-contain mix-blend-screen" alt="ResQHer Logo" />
           </div>
           <div className="flex flex-col items-center gap-2">
             <h1 className="text-4xl font-black tracking-tight">
@@ -62,7 +62,7 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-between px-8 py-14 max-w-[420px] mx-auto w-full animate-in fade-in duration-700 relative overflow-hidden font-['Inter']">
+    <div className="h-screen bg-[#050505] flex flex-col items-center justify-between px-8 py-8 max-w-[420px] mx-auto w-full animate-in fade-in duration-700 relative overflow-hidden font-['Inter']">
       {/* Top Navigation */}
       <div className="flex items-center justify-between w-full absolute top-10 left-0 px-8 z-10">
         <Dialog>
@@ -71,7 +71,7 @@ export default function WelcomePage() {
               <Info className="w-5 h-5" />
             </button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md overflow-hidden bg-[#0A0A0A] border-white/10 text-white">
+          <DialogContent className="max-w-[90%] sm:max-w-[360px] overflow-hidden bg-[#0A0A0A] border-white/10 text-white rounded-3xl">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#a855f7] to-[#7c3aed]"></div>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold text-white">
@@ -79,40 +79,40 @@ export default function WelcomePage() {
                 About Us
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-4 pb-2">
-              <div className="flex flex-col items-center gap-2 mb-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#7c3aed] p-1 shadow-lg shadow-purple-500/20">
-                  <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-[#a855f7] text-3xl font-black">
+            <div className="space-y-3 pt-2 pb-1">
+              <div className="flex flex-col items-center gap-2 mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#a855f7] to-[#7c3aed] p-1 shadow-lg shadow-purple-500/20">
+                  <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-[#a855f7] text-2xl font-black">
                     V
                   </div>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-bold text-xl text-white">Developed by Vishnu</h3>
+                  <h3 className="font-bold text-lg text-white">Developed by Vishnu</h3>
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+              <div className="grid gap-2">
+                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
                   <GraduationCap className="w-5 h-5 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">College</p>
-                    <p className="text-sm font-semibold mt-0.5 text-white">Madras Engineering College</p>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">College</p>
+                    <p className="text-xs font-semibold mt-0.5 text-white">Madras Engineering College</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
                   <BookOpen className="w-5 h-5 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Current Studying</p>
-                    <p className="text-sm font-semibold mt-0.5 text-white">B.Tech Information Technology</p>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Current Studying</p>
+                    <p className="text-xs font-semibold mt-0.5 text-white">B.Tech Information Technology</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151515] border border-white/5">
+                <div className="flex items-start gap-3 p-2 rounded-xl bg-[#151515] border border-white/5">
                   <Laptop className="w-5 h-5 text-[#a855f7] mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Skills</p>
-                    <ul className="text-sm font-semibold mt-1 space-y-1 text-white">
+                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Skills</p>
+                    <ul className="text-xs font-semibold mt-1 space-y-1 text-white">
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Full Stack Developer</li>
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Frontend Developer</li>
                       <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#a855f7]" /> Backend Developer</li>
@@ -127,10 +127,10 @@ export default function WelcomePage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 py-10 w-full mt-20">
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-4 w-full mt-14">
         <div className="w-56 h-56 flex flex-col items-center justify-center animate-in zoom-in-95 duration-1000 relative">
           <div className="absolute inset-0 bg-purple-500/10 blur-[60px] rounded-full"></div>
-          <img src={resqherLogo} className="w-full h-full object-contain relative z-10" alt="ResQHer Logo" />
+          <img src={resqherLogo} className="w-full h-full object-contain relative z-10 mix-blend-screen" alt="ResQHer Logo" />
           
           <div className="mt-[-20px] flex flex-col items-center relative z-10">
             <h2 className="text-2xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 leading-none">
