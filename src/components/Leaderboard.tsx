@@ -20,7 +20,7 @@ export function Leaderboard() {
   useEffect(() => {
     async function fetchLeaderboard() {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_leaderboard_stats", {
+      const { data, error } = await (supabase.rpc as any)("get_leaderboard_stats", {
         time_filter: timeFilter,
       });
 
