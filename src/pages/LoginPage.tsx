@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { validateDocument } from "@/lib/document-utils";
 
 export default function LoginPage() {
   const [step, setStep] = useState<"role" | "login" | "register">("role");
@@ -74,7 +75,47 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const metadata: Record<string, string> = { full_name: fullName };
+    // 1. Automatic Document Validation
+    let verificationStatus: "verified" | "pending" | "rejected" = "pending";
+    
+    if (selectedRole !== "admin") {
+      let docToValidate: File | null = null;
+      let docType: "aadhaar" | "license" | "police_id" = "aadhaar";
+
+      if (selectedRole === "women" || selectedRole === "protector") {
+        docToValidate = aadhaarFile;
+        docType = "aadhaar";
+      } else if (selectedRole === "driver") {
+        docToValidate = licenseFile || aadhaarFile;
+        docType = licenseFile ? "license" : "aadhaar";
+      } else if (selectedRole === "police") {
+        docToValidate = aadhaarFile;
+        docType = "police_id";
+      }
+
+      if (docToValidate) {
+        toast({ title: t("verifyingDocs"), description: t("loading") });
+        const validation = await validateDocument(docToValidate, selectedRole, docType);
+        
+        if (!validation.isValid) {
+          toast({ 
+            title: t("registrationFailed"), 
+            description: t(validation.message as any), 
+            variant: "destructive" 
+          });
+          setLoading(false);
+          return;
+        }
+
+        verificationStatus = "verified";
+        toast({ title: t("done"), description: t(validation.message as any) });
+      }
+    }
+
+    const metadata: Record<string, string> = { 
+      full_name: fullName,
+      verification_status: verificationStatus 
+    };
     if (phone) metadata.phone = phone;
     if (city) metadata.city = city;
     if (dob) metadata.date_of_birth = dob;
@@ -93,7 +134,7 @@ export default function LoginPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       try {
-        const updates: Record<string, string> = {};
+        const updates: Record<string, any> = { verification_status: verificationStatus };
         if (aadhaarFile) {
           const path = await uploadDoc(aadhaarFile, user.id, "aadhaar");
           updates.aadhaar_url = path;
@@ -102,15 +143,19 @@ export default function LoginPage() {
           const path = await uploadDoc(licenseFile, user.id, "license");
           updates.driving_license_url = path;
         }
-        if (Object.keys(updates).length > 0) {
-          await supabase.from("profiles").update(updates).eq("user_id", user.id);
-        }
-      } catch {
+        await supabase.from("profiles").update(updates).eq("user_id", user.id);
+      } catch (err) {
+        console.error("Doc upload/update error:", err);
         toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });
       }
     }
 
-    toast({ title: t("accountCreated"), description: t("docsPending") });
+    if (verificationStatus === "verified") {
+      toast({ title: t("accountCreated"), description: t("welcomeTo") + " " + t("appName") });
+    } else {
+      toast({ title: t("accountCreated"), description: t("docsPending") });
+    }
+    
     setLoading(false);
   };
 

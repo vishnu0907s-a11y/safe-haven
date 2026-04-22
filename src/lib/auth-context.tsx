@@ -113,6 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (metadata.station_name) updateData.station_name = metadata.station_name;
       if (metadata.police_id) updateData.police_id = metadata.police_id;
       if (metadata.address) updateData.address = metadata.address;
+      if (metadata.verification_status) updateData.verification_status = metadata.verification_status;
 
       if (Object.keys(updateData).length > 0) {
         await supabase.from("profiles").update(updateData).eq("user_id", newUser.id);
