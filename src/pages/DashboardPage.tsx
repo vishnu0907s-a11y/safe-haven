@@ -16,7 +16,6 @@ import {
 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Leaderboard } from "@/components/Leaderboard";
 import { FloatingActionMenu } from "@/components/FloatingActionMenu";
 
 function TelemetryCard() {
@@ -391,12 +390,6 @@ export default function DashboardPage() {
         </button>
       </div>
       
-      {isResponder && (
-        <div className="mt-6">
-          <Leaderboard />
-        </div>
-      )}
-
       <FloatingActionMenu />
     </div>
   );

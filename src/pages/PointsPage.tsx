@@ -3,6 +3,7 @@ import { useRescueRecords } from "@/hooks/use-rescue-records";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { cn } from "@/lib/utils";
+import { Leaderboard } from "@/components/Leaderboard";
 
 export default function PointsPage() {
   const { user } = useAuth();
@@ -86,6 +87,10 @@ export default function PointsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+        <Leaderboard />
       </div>
     </div>
   );

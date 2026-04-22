@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, lazy } from "react";
 import { useLocation } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZero, SignalLow, Gauge, Shield } from "lucide-react";
+import { Locate, Navigation, AlertTriangle, CheckCircle2, Eye, Signal, SignalZero, SignalLow, Gauge, Shield, X } from "lucide-react";
 import { useRealtimeAlerts } from "@/hooks/use-emergency-alert";
 import { useDangerZones } from "@/hooks/use-danger-zones";
 import { useLiveTelemetry } from "@/hooks/use-live-telemetry";
