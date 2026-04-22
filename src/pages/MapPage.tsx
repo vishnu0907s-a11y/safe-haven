@@ -135,12 +135,21 @@ export default function MapPage() {
     }).addTo(map);
     mapRef.current = map;
 
-    // Fix map not loading full screen on first render
-    setTimeout(() => {
+    // Fix map not loading full screen on first render using ResizeObserver
+    const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize();
-    }, 100);
+    });
+    resizeObserver.observe(mapContainerRef.current);
 
-    return () => { map.remove(); mapRef.current = null; };
+    // Also manually trigger just in case
+    setTimeout(() => map.invalidateSize(), 100);
+    setTimeout(() => map.invalidateSize(), 500);
+
+    return () => { 
+      resizeObserver.disconnect();
+      map.remove(); 
+      mapRef.current = null; 
+    };
   }, []);
 
   // Watch position
@@ -414,7 +423,7 @@ export default function MapPage() {
 
       {/* Alerts panel (slide-up) */}
       {isResponder && showAlerts && alerts.length > 0 && (
-        <div className="absolute bottom-24 left-4 right-4 z-[1000] max-h-[40vh] overflow-y-auto space-y-2 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md z-[1000] max-h-[60vh] overflow-y-auto space-y-2 animate-in zoom-in-95 duration-200">
           {alerts.map((alert) => {
             const accepted = alert.accepted_by || [];
             const hasAccepted = user ? accepted.includes(user.user_id) : false;
@@ -448,7 +457,13 @@ export default function MapPage() {
                       </div>
                     )}
                     {!hasAccepted && (
-                      <button onClick={() => acceptAlert(alert.id)} className="p-2 rounded-xl bg-primary text-primary-foreground active:scale-95">
+                      <button 
+                        onClick={async () => {
+                          await acceptAlert(alert.id);
+                          setTrackingAlertId(alert.id);
+                        }} 
+                        className="p-2 rounded-xl bg-primary text-primary-foreground active:scale-95"
+                      >
                         <Navigation className="w-3.5 h-3.5" />
                       </button>
                     )}

@@ -97,7 +97,14 @@ export default function AlertsPage() {
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => acceptAlert(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary">
+                    <button 
+                      onClick={async () => {
+                        await acceptAlert(alert.id);
+                        navigate("/map", { state: { trackingAlertId: alert.id, showAlerts: true } });
+                      }} 
+                      disabled={accepted.length >= 10} 
+                      className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary"
+                    >
                       {t("acceptRespond")}
                     </button>
                   )}
