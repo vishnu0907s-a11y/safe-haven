@@ -275,7 +275,7 @@ export default function DashboardPage() {
     
     // Explicitly fetch the latest responder list just in case real-time was slow
     const { data: latestAlert } = await supabase
-      .from("emergency_alerts")
+      .from("sos_alerts")
       .select("accepted_by")
       .eq("id", activeAlert.id)
       .single();

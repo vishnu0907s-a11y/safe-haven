@@ -49,7 +49,7 @@ export function useResolveAlert() {
 
     // Mark alert as resolved
     await supabase
-      .from("emergency_alerts")
+      .from("sos_alerts")
       .update({ status: "resolved" })
       .eq("id", alertId);
 

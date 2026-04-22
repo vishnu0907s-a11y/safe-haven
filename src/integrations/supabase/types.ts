@@ -80,7 +80,7 @@ export type Database = {
         }
         Relationships: []
       }
-      emergency_alerts: {
+      sos_alerts: {
         Row: {
           accepted_by: string[] | null
           created_at: string

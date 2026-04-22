@@ -26,7 +26,7 @@ export function useSendEmergencyAlert() {
     
     // Initial fetch
     supabase
-      .from("emergency_alerts")
+      .from("sos_alerts")
       .select("*")
       .eq("user_id", supabaseUser.id)
       .eq("status", "active")
@@ -44,7 +44,7 @@ export function useSendEmergencyAlert() {
         {
           event: "UPDATE",
           schema: "public",
-          table: "emergency_alerts",
+          table: "sos_alerts",
           filter: `user_id=eq.${supabaseUser.id}`,
         },
         (payload) => {
@@ -73,7 +73,7 @@ export function useSendEmergencyAlert() {
       const position = await positionPromise;
 
       const { data, error } = await supabase
-        .from("emergency_alerts")
+        .from("sos_alerts")
         .insert({
           user_id: supabaseUser.id,
           latitude: position.coords.latitude,
@@ -100,7 +100,7 @@ export function useSendEmergencyAlert() {
   const cancelAlert = useCallback(async () => {
     if (!activeAlert) return;
     await supabase
-      .from("emergency_alerts")
+      .from("sos_alerts")
       .update({ status: "resolved" })
       .eq("id", activeAlert.id);
     setActiveAlert(null);
@@ -123,7 +123,7 @@ export function useRealtimeAlerts() {
   const fetchAlerts = useCallback(async () => {
     try {
       const { data: rawAlerts } = await supabase
-        .from("emergency_alerts")
+        .from("sos_alerts")
         .select("*")
         .eq("status", "active")
         .order("created_at", { ascending: false });
@@ -162,7 +162,7 @@ export function useRealtimeAlerts() {
       .channel("emergency-alerts-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "emergency_alerts" },
+        { event: "*", schema: "public", table: "sos_alerts" },
         async (payload) => {
           if (payload.eventType === "INSERT") {
             const newAlert = payload.new as EmergencyAlert;
@@ -218,7 +218,7 @@ export function useRealtimeAlerts() {
       }
 
       const { error } = await supabase
-        .from("emergency_alerts")
+        .from("sos_alerts")
         .update({ accepted_by: [...currentAccepted, user.user_id] })
         .eq("id", alertId);
 
@@ -241,7 +241,7 @@ export function useRealtimeAlerts() {
       if (!currentAccepted.includes(user.user_id)) return;
 
       const { error } = await supabase
-        .from("emergency_alerts")
+        .from("sos_alerts")
         .update({ accepted_by: currentAccepted.filter(id => id !== user.user_id) })
         .eq("id", alertId);
 

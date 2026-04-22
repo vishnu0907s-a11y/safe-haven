@@ -34,8 +34,8 @@ export default function AlertsPage() {
     if (!user) return;
     const fetchPast = async () => {
       const query = user.role === "women"
-        ? supabase.from("emergency_alerts").select("*").eq("user_id", user.user_id).neq("status", "active").order("created_at", { ascending: false }).limit(20)
-        : supabase.from("emergency_alerts").select("*").neq("status", "active").order("created_at", { ascending: false }).limit(20);
+        ? supabase.from("sos_alerts").select("*").eq("user_id", user.user_id).neq("status", "active").order("created_at", { ascending: false }).limit(20)
+        : supabase.from("sos_alerts").select("*").neq("status", "active").order("created_at", { ascending: false }).limit(20);
       const { data } = await query;
       if (data) setPastAlerts(data);
     };
