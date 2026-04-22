@@ -151,7 +151,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { t } = useI18n();
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
-  const { alerts, acceptAlert } = useRealtimeAlerts();
+  const { alerts, acceptAlert, cancelAcceptance } = useRealtimeAlerts();
   const { contacts, sendWhatsAppAlerts } = useEmergencyContacts();
   const navigate = useNavigate();
   const { resolveAlert } = useResolveAlert();
@@ -348,9 +348,14 @@ export default function DashboardPage() {
                   )}
 
                   {hasAccepted ? (
-                    <button onClick={() => navigate("/map", { state: { trackingAlertId: alert.id, showAlerts: true } })} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-accent/10 text-accent text-xs font-medium border border-accent/20 active:scale-[0.98]">
-                      <Navigation className="w-4 h-4" /> {t("acceptedNavigate")}
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => navigate("/map", { state: { trackingAlertId: alert.id, showAlerts: true } })} className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-lg bg-accent/10 text-accent text-xs font-medium border border-accent/20 active:scale-[0.98]">
+                        <Navigation className="w-4 h-4" /> {t("acceptedNavigate")}
+                      </button>
+                      <button onClick={() => cancelAcceptance(alert.id)} className="px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20 active:scale-[0.98]">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   ) : (
                     <button onClick={() => handleAcceptAndNavigate(alert.id)} disabled={accepted.length >= 10} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-50 glow-primary">
                       {t("acceptRespond")}

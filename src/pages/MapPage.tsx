@@ -58,7 +58,7 @@ export default function MapPage() {
   const { user } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
-  const { alerts, acceptAlert } = useRealtimeAlerts();
+  const { alerts, acceptAlert, cancelAcceptance } = useRealtimeAlerts();
   const { zones } = useDangerZones();
   const telemetry = useLiveTelemetry();
   const mapRef = useRef<L.Map | null>(null);
@@ -354,13 +354,16 @@ export default function MapPage() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {hasAccepted && (
-                      <button onClick={() => handleTrackVictim(alert.id)} className={cn("p-2 rounded-xl transition-colors active:scale-95", isTracking ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex gap-1">
+                        <button onClick={() => handleTrackVictim(alert.id)} className={cn("p-2 rounded-xl transition-colors active:scale-95", isTracking ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => cancelAcceptance(alert.id)} className="p-2 rounded-xl bg-destructive/10 text-destructive transition-colors active:scale-95">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
-                    {hasAccepted ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    ) : (
+                    {!hasAccepted && (
                       <button onClick={() => acceptAlert(alert.id)} className="p-2 rounded-xl bg-primary text-primary-foreground active:scale-95">
                         <Navigation className="w-3.5 h-3.5" />
                       </button>

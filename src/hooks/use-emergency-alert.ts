@@ -203,5 +203,28 @@ export function useRealtimeAlerts() {
     [user, alerts]
   );
 
-  return { alerts, loading, acceptAlert };
+  const cancelAcceptance = useCallback(
+    async (alertId: string) => {
+      if (!user) return;
+      const alert = alerts.find((a) => a.id === alertId);
+      if (!alert) return;
+
+      const currentAccepted = alert.accepted_by || [];
+      if (!currentAccepted.includes(user.user_id)) return;
+
+      const { error } = await supabase
+        .from("emergency_alerts")
+        .update({ accepted_by: currentAccepted.filter(id => id !== user.user_id) })
+        .eq("id", alertId);
+
+      if (error) {
+        toast.error("Failed to cancel response.");
+      } else {
+        toast.info("Response cancelled.");
+      }
+    },
+    [user, alerts]
+  );
+
+  return { alerts, loading, acceptAlert, cancelAcceptance };
 }
