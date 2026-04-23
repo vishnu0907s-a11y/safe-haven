@@ -118,20 +118,34 @@ export const validateDocument = async (
 
     if (docType === 'aadhaar') {
       const aadhaarRegex = /\b\d{4}\s?\d{4}\s?\d{4}\b/g;
-      const matches = text.match(aadhaarRegex);
+      
+      // Handle common OCR mistakes (e.g. O instead of 0, l instead of 1)
+      const correctedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1');
+      const matches = correctedText.match(aadhaarRegex);
       const validChecksum = matches ? matches.some(num => validateVerhoeff(num)) : false;
       
-      // Make keyword matching more lenient to support regional languages / incomplete scans
-      // Tamil and other regional cards might not have 'AADHAAR' in English clearly visible
+      // Lenient structure check (at least 12 digits found somewhere)
+      const digitsOnly = correctedText.replace(/[^0-9]/g, '');
+      const has12Digits = digitsOnly.length >= 12;
+      
       const hasKeywords = upperText.includes('AADHAAR') || 
                           upperText.includes('UNIQUE IDENTIFICATION') || 
                           upperText.includes('GOVERNMENT OF INDIA') || 
                           upperText.includes('DOB') || 
-                          upperText.includes('YEAR OF BIRTH');
+                          upperText.includes('YEAR OF BIRTH') ||
+                          upperText.includes('MALE') ||
+                          upperText.includes('FEMALE') ||
+                          upperText.includes('INDIA');
 
-      if (validChecksum && hasKeywords) {
+      // Accept if:
+      // 1. Perfect mathematically valid Aadhaar number found OR
+      // 2. Looks like it has 12 digits AND has Aadhaar-related keywords OR
+      // 3. Has very strong visual indicators (GOVERNMENT OF INDIA + DOB) even if numbers are unreadable
+      if (validChecksum || (has12Digits && hasKeywords) || (upperText.includes('GOVERNMENT') && upperText.includes('DOB'))) {
         return { isValid: true, message: 'validAadhaar', extractedText: text };
       }
+      
+      console.log("OCR Extracted Text (Failed):", text); // Helpful for debugging
       return { isValid: false, message: 'invalidAadhaar' };
     }
 
