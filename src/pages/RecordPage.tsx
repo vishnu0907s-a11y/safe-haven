@@ -17,12 +17,29 @@ export default function RecordPage() {
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const lastLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // Pre-fetch location when page loads or recording starts
+  const refreshLocation = useCallback(async () => {
+    try {
+      const pos = await getFastLocation();
+      lastLocationRef.current = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      };
+    } catch (e) {
+      console.warn("Failed to pre-fetch location:", e);
+    }
+  }, []);
+
 
   useEffect(() => {
+    refreshLocation(); // Fetch on mount
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [refreshLocation]);
+
 
   const startRecording = useCallback(async () => {
     try {
@@ -35,7 +52,15 @@ export default function RecordPage() {
         videoPreviewRef.current.play();
       }
 
-      const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      // Try to refresh location in background while recording
+      refreshLocation();
+
+      // Lower bitrate (400kbps) for significantly faster uploads (1-2s target)
+      const recorder = new MediaRecorder(stream, { 
+        mimeType: "video/webm;codecs=vp8,opus",
+        videoBitsPerSecond: 400000 
+      });
+      
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -44,15 +69,17 @@ export default function RecordPage() {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         stream.getTracks().forEach((t) => t.stop());
         if (videoPreviewRef.current) videoPreviewRef.current.srcObject = null;
-        await uploadVideo(blob);
+        uploadVideo(blob); // Don't await here to let UI update faster
       };
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
-    } catch {
+    } catch (error) {
+      console.error("Recording error:", error);
       setHasPermission(false);
-      toast.error("Camera access denied");
+      toast.error("Camera access denied or error occurred");
     }
+
   }, []);
 
   const stopRecording = () => {
@@ -66,48 +93,59 @@ export default function RecordPage() {
     if (!supabaseUser) return;
     setUploading(true);
     
-    // 1. Get location if possible
-    let lat: number | null = null;
-    let lng: number | null = null;
     try {
-      const pos = await getFastLocation();
-      lat = pos.coords.latitude;
-      lng = pos.coords.longitude;
-    } catch {
-      console.warn("Could not get GPS for evidence metadata");
-    }
+      // 1. Use pre-fetched location or try one last quick fetch
+      let lat = lastLocationRef.current?.lat || null;
+      let lng = lastLocationRef.current?.lng || null;
+      
+      if (!lat) {
+        try {
+          const pos = await getFastLocation({ timeout: 2000 });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch (e) {
+          console.warn("Could not get GPS for evidence metadata", e);
+        }
+      }
 
-    // 2. Upload to storage
-    const fileName = `${supabaseUser.id}/evidence-${Date.now()}.webm`;
-    const { error: uploadError } = await supabase.storage.from("videos").upload(fileName, blob);
-    
-    if (uploadError) {
+      // 2. Upload to storage
+      const fileName = `${supabaseUser.id}/evidence-${Date.now()}.webm`;
+      const { error: uploadError } = await supabase.storage.from("videos").upload(fileName, blob, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        toast.error(t("videoUploadFailed"));
+        return;
+      }
+
+      // 3. Save metadata to evidence_videos table
+      const { data: urlData } = supabase.storage.from("videos").getPublicUrl(fileName);
+      
+      const { error: dbError } = await supabase.from("evidence_videos" as any).insert({
+        user_id: supabaseUser.id,
+        storage_path: fileName,
+        public_url: urlData.publicUrl,
+        latitude: lat,
+        longitude: lng
+      } as any);
+
+      if (dbError) {
+        console.error("Failed to save evidence metadata:", dbError);
+        toast.error("Video uploaded, but failed to save details.");
+      } else {
+        toast.success(t("videoSaved"));
+      }
+    } catch (error) {
+      console.error("Unexpected upload error:", error);
+      toast.error("An unexpected error occurred during upload.");
+    } finally {
       setUploading(false);
-      toast.error(t("videoUploadFailed"));
-      return;
-    }
-
-    // 3. Save metadata to evidence_videos table
-    const { data: urlData } = supabase.storage.from("videos").getPublicUrl(fileName);
-    
-    const { error: dbError } = await supabase.from("evidence_videos" as any).insert({
-      user_id: supabaseUser.id,
-      storage_path: fileName,
-      public_url: urlData.publicUrl,
-      latitude: lat,
-      longitude: lng
-    } as any);
-
-    setUploading(false);
-    
-    if (dbError) {
-      console.error("Failed to save evidence metadata:", dbError);
-      // We don't fail completely since the file is in storage, but we warn
-      toast.error("Video uploaded, but failed to save details.");
-    } else {
-      toast.success(t("videoSaved"));
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-0 bg-black flex flex-col">
