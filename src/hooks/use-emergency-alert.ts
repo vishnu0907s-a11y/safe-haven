@@ -67,11 +67,15 @@ export function useSendEmergencyAlert() {
     if (!supabaseUser) return;
     setSending(true);
     try {
-      // Optimistically start the process
-      const positionPromise = getFastLocation();
+      // Fast location fetch - wait max 2 seconds for high accuracy
+      let position;
+      try {
+        position = await getFastLocation({ timeout: 2000 });
+      } catch (e) {
+        console.warn("Fast GPS failed, using last known or low accuracy...");
+        position = await getFastLocation({ enableHighAccuracy: false, timeout: 5000 });
+      }
       
-      const position = await positionPromise;
-
       const { data, error } = await supabase
         .from("sos_alerts")
         .insert({
@@ -83,19 +87,26 @@ export function useSendEmergencyAlert() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("SOS Alert Error:", error);
+        if (error.message.includes("schema cache")) {
+          toast.error("Database table 'sos_alerts' is missing. Please run the SQL setup script in Supabase.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+      
       setActiveAlert(data as any);
       toast.success("Emergency alert sent! Help is on the way.");
     } catch (err: any) {
-      if (err?.code === 1) {
-        toast.error("Location access denied. Please enable GPS.");
-      } else {
-        toast.error(err?.message || "Failed to send alert");
-      }
+      console.error("SOS Trigger Error:", err);
+      toast.error(err?.message || "Failed to send alert");
     } finally {
       setSending(false);
     }
   }, [supabaseUser]);
+
 
   const cancelAlert = useCallback(async () => {
     if (!activeAlert) return;

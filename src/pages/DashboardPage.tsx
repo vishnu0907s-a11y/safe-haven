@@ -238,18 +238,29 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const triggerSOS = async () => {
+  const triggerSOS = useCallback(async () => {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    
+    // Start sending alert immediately (it will use the fastest available location inside)
+    const alertPromise = sendAlert();
+    
+    // Try to get high accuracy location for WhatsApp contacts in parallel
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+        navigator.geolocation.getCurrentPosition(resolve, reject, { 
+          enableHighAccuracy: true, 
+          timeout: 3000, // Faster timeout for initial share
+          maximumAge: 10000 
+        });
       });
-      await sendAlert();
       sendWhatsAppAlerts(position.coords.latitude, position.coords.longitude);
     } catch {
-      await sendAlert();
+      // Fallback: If high accuracy fails, use whatever sendAlert found or just send WhatsApp later
+      console.warn("Fast GPS failed for WhatsApp, waiting for alert process...");
     }
-  };
+    
+    await alertPromise;
+  }, [sendAlert, sendWhatsAppAlerts]);
 
   const handleSOSStart = () => {
     setSosHolding(true);
@@ -257,13 +268,24 @@ export default function DashboardPage() {
     const animate = () => {
       const progress = Math.min((Date.now() - sosStartRef.current) / 1000, 1);
       setSosProgress(progress);
-      if (progress >= 1) { setSosHolding(false); setSosProgress(0); triggerSOS(); return; }
+      if (progress >= 1) { 
+        setSosHolding(false); 
+        setSosProgress(0); 
+        triggerSOS(); 
+        if (sosAnimRef.current) cancelAnimationFrame(sosAnimRef.current);
+        return; 
+      }
       sosAnimRef.current = requestAnimationFrame(animate);
     };
     sosAnimRef.current = requestAnimationFrame(animate);
   };
 
-  const handleSOSEnd = () => { setSosHolding(false); setSosProgress(0); if (sosAnimRef.current) cancelAnimationFrame(sosAnimRef.current); };
+  const handleSOSEnd = () => { 
+    setSosHolding(false); 
+    setSosProgress(0); 
+    if (sosAnimRef.current) cancelAnimationFrame(sosAnimRef.current); 
+  };
+
 
   const handleAcceptAndNavigate = async (alertId: string) => {
     await acceptAlert(alertId);
