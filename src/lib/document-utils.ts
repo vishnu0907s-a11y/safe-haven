@@ -121,8 +121,13 @@ export const validateDocument = async (
       const matches = text.match(aadhaarRegex);
       const validChecksum = matches ? matches.some(num => validateVerhoeff(num)) : false;
       
-      const hasKeywords = (upperText.includes('AADHAAR') || upperText.includes('UNIQUE IDENTIFICATION')) && 
-                          (upperText.includes('GOVERNMENT OF INDIA') || upperText.includes('MERA AADHAAR'));
+      // Make keyword matching more lenient to support regional languages / incomplete scans
+      // Tamil and other regional cards might not have 'AADHAAR' in English clearly visible
+      const hasKeywords = upperText.includes('AADHAAR') || 
+                          upperText.includes('UNIQUE IDENTIFICATION') || 
+                          upperText.includes('GOVERNMENT OF INDIA') || 
+                          upperText.includes('DOB') || 
+                          upperText.includes('YEAR OF BIRTH');
 
       if (validChecksum && hasKeywords) {
         return { isValid: true, message: 'validAadhaar', extractedText: text };
