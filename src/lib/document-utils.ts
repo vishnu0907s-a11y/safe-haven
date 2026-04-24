@@ -131,24 +131,25 @@ export const validateDocument = async (
       
       const hasKeywords = upperText.includes('AADHAAR') || 
                           upperText.includes('UNIQUE IDENTIFICATION') || 
-                          upperText.includes('GOVERNMENT OF INDIA') || 
+                          upperText.includes('GOVERNMENT') || 
+                          upperText.includes('INDIA') ||
                           upperText.includes('DOB') || 
                           upperText.includes('YEAR OF BIRTH') ||
                           upperText.includes('MALE') ||
                           upperText.includes('FEMALE') ||
-                          upperText.includes('INDIA');
+                          upperText.includes('O0B'); // Common OCR mistake for DOB
 
       // Accept if:
       // 1. Perfect mathematically valid Aadhaar number found OR
       // 2. Looks like it has 12 digits AND has Aadhaar-related keywords OR
-      // 3. Has very strong visual indicators (GOVERNMENT OF INDIA + DOB) even if numbers are unreadable
-      if (validChecksum || (has12Digits && hasKeywords) || (upperText.includes('GOVERNMENT') && upperText.includes('DOB'))) {
-        return { isValid: true, status: 'verified', message: 'validAadhaar', extractedText: text };
+      // 3. Has strong visual indicators like DOB
+      if (validChecksum || (has12Digits && hasKeywords) || upperText.includes('DOB') || upperText.includes('O0B')) {
+        return { isValid: true, status: validChecksum ? 'verified' : 'partial', message: 'validAadhaar', extractedText: text };
       }
       
       console.log("OCR Extracted Text (Failed):", text);
-      // Return partial if it has some keywords or just failed to read numbers
-      if (hasKeywords || upperText.includes('INDIA')) {
+      // Return partial if it has some keywords or at least 10 digits found
+      if (hasKeywords || digitsOnly.length >= 10) {
         return { isValid: true, status: 'partial', message: 'partialAadhaar', extractedText: text };
       }
       
