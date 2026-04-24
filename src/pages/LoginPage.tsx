@@ -75,8 +75,8 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // 1. Automatic Document Validation
-    let verificationStatus: "verified" | "pending" | "rejected" = "pending";
+    // 1. Automatic Document Validation (Skip for Admin or if no files)
+    let verificationStatus: "verified" | "pending" | "rejected" = selectedRole === "admin" ? "verified" : "pending";
     
     if (selectedRole !== "admin") {
       let docToValidate: File | null = null;
@@ -227,7 +227,11 @@ export default function LoginPage() {
         )}
 
         {selectedRole === "admin" && (
-          <p className="text-xs text-muted-foreground text-center">{t("adminNote")}</p>
+          <>
+            <p className="text-xs text-muted-foreground text-center mb-2">{t("adminNote")}</p>
+            <Input placeholder={t("fullNamePlaceholder")} value={fullName} onChange={(e) => setFullName(e.target.value)} required className="bg-secondary border-border/60" />
+            <Input placeholder={t("phonePlaceholder")} value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-secondary border-border/60" />
+          </>
         )}
       </>
     );

@@ -60,13 +60,36 @@ export default function WelcomePage() {
     );
   }
 
+  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const startPress = () => {
+    const timer = setTimeout(() => {
+      navigate("/super-admin-login");
+    }, 3000);
+    setPressTimer(timer);
+  };
+
+  const endPress = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+  };
+
   return (
     <div className="h-screen bg-[#050505] flex flex-col items-center justify-between px-8 py-8 max-w-[420px] mx-auto w-full animate-in fade-in duration-700 relative overflow-hidden font-['Inter']">
       {/* Top Navigation */}
       <div className="flex items-center justify-between w-full absolute top-10 left-0 px-8 z-10">
         <Dialog>
           <DialogTrigger asChild>
-            <button className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-gray-400 hover:bg-[#252525] transition-colors border border-white/5 shadow-lg">
+            <button 
+              onMouseDown={startPress}
+              onMouseUp={endPress}
+              onTouchStart={startPress}
+              onTouchEnd={endPress}
+              onMouseLeave={endPress}
+              className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-gray-400 hover:bg-[#252525] transition-colors border border-white/5 shadow-lg"
+            >
               <Info className="w-5 h-5" />
             </button>
           </DialogTrigger>

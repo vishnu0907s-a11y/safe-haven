@@ -8,6 +8,8 @@ import { I18nProvider } from "@/lib/i18n-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
+import SuperAdminLoginPage from "@/pages/SuperAdminLoginPage.tsx";
+import SuperAdminDashboard from "@/pages/SuperAdminDashboard.tsx";
 import DashboardPage from "@/pages/DashboardPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import ProfilePage from "@/pages/ProfilePage";
@@ -78,7 +80,9 @@ function AppRoutes() {
         <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/complaint" element={<ComplaintPage />} />
+        <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
       </Route>
+      <Route path="/super-admin-login" element={<SuperAdminLoginPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

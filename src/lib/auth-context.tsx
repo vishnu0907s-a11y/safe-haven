@@ -42,36 +42,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (authUser: SupabaseUser) => {
-    const [{ data: profile }, { data: roleData }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", authUser.id).single(),
-      supabase.from("user_roles").select("role").eq("user_id", authUser.id).single(),
-    ]);
+    try {
+      const [{ data: profile }, { data: roleData }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", authUser.id).maybeSingle(),
+      ]);
 
-    if (profile && roleData) {
-      setUser({
-        ...profile,
-        role: roleData.role as UserRole,
-        email: authUser.email || "",
-      });
+      if (profile) {
+        const userRole = (roleData?.role || authUser.user_metadata?.role || "women") as UserRole;
+        setUser({
+          ...profile,
+          role: userRole,
+          email: authUser.email || "",
+        });
+      } else {
+        const userRole = (roleData?.role || authUser.user_metadata?.role || "women") as UserRole;
+        setUser({
+          user_id: authUser.id,
+          full_name: authUser.user_metadata?.full_name || "User",
+          role: userRole,
+          email: authUser.email || "",
+          verification_status: "pending" as const
+        } as any);
+      }
+    } catch (err) {
+      console.error("fetchProfile error:", err);
+    } finally {
+      setLoading(false);
     }
   }, []);
-
-  const refreshProfile = useCallback(async () => {
-    if (supabaseUser) await fetchProfile(supabaseUser);
-  }, [supabaseUser, fetchProfile]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setSupabaseUser(session.user);
-        // Defer profile fetch to avoid Supabase deadlock
-        setTimeout(() => fetchProfile(session.user), 0);
+        await fetchProfile(session.user);
       } else {
         setSupabaseUser(null);
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
+
+    // Safety timeout to prevent infinite loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -82,17 +98,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, [fetchProfile]);
 
   const login = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("Login Error Details:", error);
+      return { error: error.message };
+    }
     return {};
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    if (supabaseUser) await fetchProfile(supabaseUser);
+  }, [supabaseUser, fetchProfile]);
+
   const register = useCallback(async (email: string, password: string, role: UserRole, metadata: Record<string, string>) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -100,35 +126,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: window.location.origin,
       },
     });
+    
     if (error) return { error: error.message };
 
-    // Upsert profile with additional fields after signup
-    const { data: { user: newUser } } = await supabase.auth.getUser();
+    const newUser = data.user;
     if (newUser) {
-      const updateData: Record<string, any> = { 
+      // FORCE sync to tables
+      const { error: pErr } = await supabase.from("profiles").upsert({
         user_id: newUser.id,
-        full_name: metadata.full_name || 'User'
-      };
+        full_name: metadata.full_name || 'User',
+        phone: metadata.phone || null,
+        city: metadata.city || null,
+        verification_status: (role === 'admin' ? 'verified' : (metadata.verification_status || 'pending')) as "pending" | "verified" | "rejected"
+      } as any, { onConflict: 'user_id' });
+
+      const { error: rErr } = await supabase.from("user_roles").upsert({
+        user_id: newUser.id,
+        role: role
+      }, { onConflict: 'user_id' });
+
+      if (pErr || rErr) console.error("Sync error:", pErr || rErr);
       
-      if (metadata.phone) updateData.phone = metadata.phone;
-      if (metadata.city) updateData.city = metadata.city;
-      if (metadata.date_of_birth) updateData.date_of_birth = metadata.date_of_birth;
-      if (metadata.vehicle_number) updateData.vehicle_number = metadata.vehicle_number;
-      if (metadata.station_name) updateData.station_name = metadata.station_name;
-      if (metadata.police_id) updateData.police_id = metadata.police_id;
-      if (metadata.address) updateData.address = metadata.address;
-      if (metadata.verification_status) updateData.verification_status = metadata.verification_status;
-
-      // Use upsert to create or update the profile row
-      const { error: profileError } = await supabase.from("profiles").upsert(updateData, { onConflict: 'user_id' });
-      if (profileError) console.error("Profile Upsert Error:", profileError);
-
-      // Ensure user role is also created/updated
-      await supabase.from("user_roles").upsert({ user_id: newUser.id, role }, { onConflict: 'user_id' });
+      // Refresh to ensure session has the profile
+      await fetchProfile(newUser);
     }
-
+    
     return {};
-  }, []);
+  }, [fetchProfile]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
