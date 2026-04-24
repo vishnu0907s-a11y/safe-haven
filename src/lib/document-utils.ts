@@ -40,6 +40,7 @@ const stateCodes = ["AN", "AP", "AR", "AS", "BR", "CH", "CT", "DN", "DD", "DL", 
 
 export type ValidationResult = {
   isValid: boolean;
+  status: 'verified' | 'partial' | 'failed' | 'error';
   message: string;
   extractedText?: string;
 };
@@ -142,11 +143,16 @@ export const validateDocument = async (
       // 2. Looks like it has 12 digits AND has Aadhaar-related keywords OR
       // 3. Has very strong visual indicators (GOVERNMENT OF INDIA + DOB) even if numbers are unreadable
       if (validChecksum || (has12Digits && hasKeywords) || (upperText.includes('GOVERNMENT') && upperText.includes('DOB'))) {
-        return { isValid: true, message: 'validAadhaar', extractedText: text };
+        return { isValid: true, status: 'verified', message: 'validAadhaar', extractedText: text };
       }
       
-      console.log("OCR Extracted Text (Failed):", text); // Helpful for debugging
-      return { isValid: false, message: 'invalidAadhaar' };
+      console.log("OCR Extracted Text (Failed):", text);
+      // Return partial if it has some keywords or just failed to read numbers
+      if (hasKeywords || upperText.includes('INDIA')) {
+        return { isValid: true, status: 'partial', message: 'partialAadhaar', extractedText: text };
+      }
+      
+      return { isValid: false, status: 'failed', message: 'invalidAadhaar' };
     }
 
     if (docType === 'license') {
@@ -158,9 +164,14 @@ export const validateDocument = async (
                           (upperText.includes('TRANSPORT') || upperText.includes('AUTHORITY') || upperText.includes('INDIA'));
 
       if (hasValidDL && hasKeywords) {
-        return { isValid: true, message: 'validLicense', extractedText: text };
+        return { isValid: true, status: 'verified', message: 'validLicense', extractedText: text };
       }
-      return { isValid: false, message: 'invalidLicense' };
+      
+      if (hasKeywords) {
+        return { isValid: true, status: 'partial', message: 'partialLicense', extractedText: text };
+      }
+      
+      return { isValid: false, status: 'failed', message: 'invalidLicense' };
     }
 
     if (docType === 'police_id') {
@@ -171,14 +182,20 @@ export const validateDocument = async (
       const hasIdNumber = idRegex.test(upperText);
 
       if (hasPoliceKeyword && hasIdNumber) {
-        return { isValid: true, message: 'validPoliceId', extractedText: text };
+        return { isValid: true, status: 'verified', message: 'validPoliceId', extractedText: text };
       }
-      return { isValid: false, message: 'invalidPoliceId' };
+      
+      if (hasPoliceKeyword) {
+        return { isValid: true, status: 'partial', message: 'partialPoliceId', extractedText: text };
+      }
+      
+      return { isValid: false, status: 'failed', message: 'invalidPoliceId' };
     }
 
-    return { isValid: false, message: 'unsupportedDocType' };
+    return { isValid: false, status: 'failed', message: 'unsupportedDocType' };
   } catch (error) {
     console.error('High-Accuracy Verification Error:', error);
-    return { isValid: false, message: 'verificationError' };
+    // If OCR engine fails completely, return partial to allow manual review
+    return { isValid: true, status: 'partial', message: 'verificationError' };
   }
 };

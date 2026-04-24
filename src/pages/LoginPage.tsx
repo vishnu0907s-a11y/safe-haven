@@ -107,8 +107,11 @@ export default function LoginPage() {
           return;
         }
 
-        verificationStatus = "verified";
-        toast({ title: t("done"), description: t(validation.message as any) });
+        verificationStatus = validation.status === 'verified' ? "verified" : "pending";
+        toast({ 
+          title: validation.status === 'verified' ? t("done") : t("idProofRequired"), 
+          description: validation.status === 'verified' ? t(validation.message as any) : t("docsPending") 
+        });
       }
     }
 
