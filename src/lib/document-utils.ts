@@ -97,7 +97,7 @@ export const validateDocument = async (
   try {
     // 1. High-Quality File Size Check
     if (file.size < 50000) { 
-      return { isValid: false, message: 'imageTooLowQuality' };
+      return { isValid: false, status: 'failed', message: 'imageTooLowQuality' };
     }
 
     // 2. Pre-process Image
@@ -112,7 +112,7 @@ export const validateDocument = async (
     
     // 4. Basic content check
     if (text.trim().length < 20) {
-      return { isValid: false, message: 'noTextExtracted' };
+      return { isValid: false, status: 'failed', message: 'noTextExtracted' };
     }
 
     // 5. Strict Validation Logic
