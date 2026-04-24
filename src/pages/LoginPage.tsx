@@ -147,7 +147,11 @@ export default function LoginPage() {
           const path = await uploadDoc(licenseFile, user.id, "license");
           updates.driving_license_url = path;
         }
-        await supabase.from("profiles").update(updates).eq("user_id", user.id);
+        await supabase.from("profiles").upsert({ 
+          ...updates, 
+          user_id: user.id,
+          full_name: fullName 
+        }, { onConflict: 'user_id' });
       } catch (err) {
         console.error("Doc upload/update error:", err);
         toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });

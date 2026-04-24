@@ -56,7 +56,7 @@ async function preprocessImage(file: File): Promise<{ dataUrl: string, width: nu
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d')!;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
         
         // 1. Smart Upscaling: Ensure minimum width of 400px for OCR accuracy
         let targetWidth = img.width;
