@@ -95,18 +95,36 @@ export const validateDocument = async (
   docType: 'aadhaar' | 'license' | 'police_id'
 ): Promise<ValidationResult> => {
   try {
-    // 1. High-Quality File Size Check
-    if (file.size < 50000) { 
+    // 1. Minimum File Size Check (Very low threshold to prevent empty files)
+    if (file.size < 5000) { 
       return { isValid: false, status: 'failed', message: 'imageTooLowQuality' };
     }
 
     // 2. Pre-process Image
     const processedImage = await preprocessImage(file);
 
-    // 3. Perform OCR
-    const worker = await createWorker('eng');
-    const { data: { text } } = await worker.recognize(processedImage);
-    await worker.terminate();
+    // 3. Perform OCR with Timeout Protection
+    let text = "";
+    try {
+      const worker = await createWorker('eng');
+      // Set a 15-second timeout for the recognition process
+      const recognitionPromise = worker.recognize(processedImage);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OCR Timeout')), 15000)
+      );
+      
+      const result = await Promise.race([recognitionPromise, timeoutPromise]) as any;
+      text = result.data.text;
+      await worker.terminate();
+    } catch (ocrError: any) {
+      console.warn("OCR Recognition Failed or Timed Out:", ocrError);
+      // If OCR engine fails completely (e.g. "Image too small"), return partial to allow manual review
+      return { 
+        isValid: true, 
+        status: 'partial', 
+        message: 'verificationSlow' // "OCR process was slow or encountered an issue, sending for manual review"
+      };
+    }
 
     const upperText = text.toUpperCase();
     
