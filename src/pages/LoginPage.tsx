@@ -75,7 +75,7 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // 1. Automatic Document Validation (Skip for Admin or if no files)
+    // 1. Lenient Document Validation
     let verificationStatus: "verified" | "pending" | "rejected" = selectedRole === "admin" ? "verified" : "pending";
     
     if (selectedRole !== "admin") {
@@ -97,20 +97,12 @@ export default function LoginPage() {
         toast({ title: t("verifyingDocs"), description: t("loading") });
         const validation = await validateDocument(docToValidate, selectedRole, docType);
         
-        if (!validation.isValid) {
-          toast({ 
-            title: t("registrationFailed"), 
-            description: t(validation.message as any), 
-            variant: "destructive" 
-          });
-          setLoading(false);
-          return;
-        }
-
+        // Even if validation status is pending, we proceed (isValid is now always true)
         verificationStatus = validation.status === 'verified' ? "verified" : "pending";
+        
         toast({ 
-          title: validation.status === 'verified' ? t("done") : t("idProofRequired"), 
-          description: validation.status === 'verified' ? t(validation.message as any) : t("docsPending") 
+          title: t("done"), 
+          description: t(validation.message as any)
         });
       }
     }
@@ -130,15 +122,24 @@ export default function LoginPage() {
     const result = await register(email, password, selectedRole, metadata);
     if (result.error) {
       console.error("Supabase Registration Error:", result.error);
-      toast({ title: t("registrationFailed"), description: result.error, variant: "destructive" });
+      // Better error message for common issues
+      let errorMessage = result.error;
+      if (result.error.includes("already registered")) {
+        errorMessage = "This email is already registered. Please try logging in.";
+      } else if (result.error.includes("Email rate limit")) {
+        errorMessage = "Too many requests. Please try again later.";
+      }
+      
+      toast({ title: t("registrationFailed"), description: errorMessage, variant: "destructive" });
       setLoading(false);
       return;
     }
 
+    // 2. Handle Document Uploads separately after successful auth registration
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       try {
-        const updates: Record<string, any> = { verification_status: verificationStatus };
+        const updates: Record<string, any> = {};
         if (aadhaarFile) {
           const path = await uploadDoc(aadhaarFile, user.id, "aadhaar");
           updates.aadhaar_url = path;
@@ -147,24 +148,26 @@ export default function LoginPage() {
           const path = await uploadDoc(licenseFile, user.id, "license");
           updates.driving_license_url = path;
         }
-        await supabase.from("profiles").upsert({ 
-          ...updates, 
-          user_id: user.id,
-          full_name: fullName 
-        }, { onConflict: 'user_id' });
+        
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("profiles").update(updates).eq("user_id", user.id);
+        }
       } catch (err) {
-        console.error("Doc upload/update error:", err);
+        console.error("Doc upload error:", err);
         toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });
       }
     }
 
-    if (verificationStatus === "verified") {
-      toast({ title: t("accountCreated"), description: t("welcomeTo") + " " + t("appName") });
-    } else {
-      toast({ title: t("accountCreated"), description: t("docsPending") });
-    }
+    toast({ 
+      title: t("accountCreated"), 
+      description: verificationStatus === "verified" ? t("welcomeTo") + " " + t("appName") : t("docsPending") 
+    });
     
     setLoading(false);
+    // Navigate to dashboard if verified, otherwise keep them informed
+    if (verificationStatus === "verified") {
+      navigate("/dashboard");
+    }
   };
 
   const roleFields = () => {

@@ -5,10 +5,48 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT,
     phone TEXT,
+    city TEXT,
+    date_of_birth DATE,
     avatar_url TEXT,
+    aadhaar_url TEXT,
+    driving_license_url TEXT,
+    vehicle_number TEXT,
+    station_name TEXT,
+    police_id TEXT,
+    address TEXT,
     verification_status TEXT DEFAULT 'pending',
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Add columns if they don't exist (in case table already exists)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='city') THEN
+        ALTER TABLE public.profiles ADD COLUMN city TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='date_of_birth') THEN
+        ALTER TABLE public.profiles ADD COLUMN date_of_birth DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='aadhaar_url') THEN
+        ALTER TABLE public.profiles ADD COLUMN aadhaar_url TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='driving_license_url') THEN
+        ALTER TABLE public.profiles ADD COLUMN driving_license_url TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='vehicle_number') THEN
+        ALTER TABLE public.profiles ADD COLUMN vehicle_number TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='station_name') THEN
+        ALTER TABLE public.profiles ADD COLUMN station_name TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='police_id') THEN
+        ALTER TABLE public.profiles ADD COLUMN police_id TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='address') THEN
+        ALTER TABLE public.profiles ADD COLUMN address TEXT;
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.user_roles (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,

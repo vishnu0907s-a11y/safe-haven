@@ -137,6 +137,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: metadata.full_name || 'User',
         phone: metadata.phone || null,
         city: metadata.city || null,
+        date_of_birth: metadata.date_of_birth || null,
+        vehicle_number: metadata.vehicle_number || null,
+        station_name: metadata.station_name || null,
+        police_id: metadata.police_id || null,
+        address: metadata.address || null,
         verification_status: (role === 'admin' ? 'verified' : (metadata.verification_status || 'pending')) as "pending" | "verified" | "rejected"
       } as any, { onConflict: 'user_id' });
 

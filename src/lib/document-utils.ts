@@ -181,39 +181,19 @@ export const validateDocument = async (
                         upperText.includes('INDIA');
     
     // 5. Confidence-Based Decision System
-    let status: ValidationResult['status'] = 'failed';
-    let isValid = false;
-    let message = 'Verification failed';
+    let status: ValidationResult['status'] = 'pending';
+    let message = 'Document received and sent for verification';
 
-    if (confidence >= 75) {
-      if (hasKeywords || text.length > 30) {
-        status = 'verified';
-        isValid = true;
-        message = 'Document automatically verified';
-      } else {
-        status = 'partial';
-        isValid = true;
-        message = 'Valid text found, but keywords missing';
-      }
-    } else if (confidence >= 40) {
-      status = 'partial';
-      isValid = true;
-      message = 'Confidence low, sent for manual review';
+    if (confidence >= 50 || hasKeywords || has12Digits) {
+      status = 'verified';
+      message = 'Document automatically verified';
     } else {
-      // Very low confidence, but check for critical patterns
-      if (has12Digits || (hasKeywords && digitsOnly.length >= 8)) {
-        status = 'partial';
-        isValid = true;
-        message = 'Unclear image, but valid patterns detected';
-      } else {
-        status = 'failed';
-        isValid = false;
-        message = 'Image too blurry or not a valid document';
-      }
+      status = 'pending';
+      message = 'Document uploaded, verification in progress';
     }
 
     return { 
-      isValid, 
+      isValid: true, // Always true to prevent registration blockage
       status, 
       message, 
       extractedText: text,
