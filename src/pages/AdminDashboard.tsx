@@ -82,7 +82,7 @@ export default function AdminDashboard() {
     const channel = supabase
       .channel("admin-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => fetchOnDuty())
-      .on("postgres_changes", { event: "*", schema: "public", table: "sos_alerts" }, () => { fetchAlerts(); fetchStats(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => { fetchAlerts(); fetchStats(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     const { count: total } = await supabase.from("profiles").select("*", { count: "exact", head: true });
-    const { count: activeAlerts } = await supabase.from("sos_alerts").select("*", { count: "exact", head: true }).eq("status", "active");
+    const { count: activeAlerts } = await supabase.from("emergency_alerts").select("*", { count: "exact", head: true }).eq("status", "active");
     const { count: verified } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("verification_status", "verified");
     setStats({ total: total || 0, active: activeAlerts || 0, verified: verified || 0 });
   };
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
   };
 
   const fetchAlerts = async () => {
-    const { data } = await supabase.from("sos_alerts").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data } = await supabase.from("emergency_alerts").select("*").order("created_at", { ascending: false }).limit(50);
     if (data && data.length > 0) {
       const uids = [...new Set(data.map(a => a.user_id))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", uids);
