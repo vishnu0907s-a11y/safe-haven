@@ -129,6 +129,7 @@ export default function LoginPage() {
 
     const result = await register(email, password, selectedRole, metadata);
     if (result.error) {
+      console.error("Supabase Registration Error:", result.error);
       toast({ title: t("registrationFailed"), description: result.error, variant: "destructive" });
       setLoading(false);
       return;
