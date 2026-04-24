@@ -80,9 +80,9 @@ function AppRoutes() {
         <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/complaint" element={<ComplaintPage />} />
-        <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
       </Route>
       <Route path="/super-admin-login" element={<SuperAdminLoginPage />} />
+      <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

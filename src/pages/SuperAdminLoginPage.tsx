@@ -62,6 +62,7 @@ export default function SuperAdminLoginPage() {
         formData.pass3 === "p3_secure" &&
         formData.secretCode === "SUPERSAFE2024"
       ) {
+        sessionStorage.setItem("isSuperAdminAuthenticated", "true");
         toast.success("Identity Verified. Accessing Super Admin Vault...");
         navigate("/super-admin-dashboard");
       } else {
