@@ -131,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const newUser = data.user;
     if (newUser) {
+      console.log("New user created in Auth:", newUser.id);
       // FORCE sync to tables
       const { error: pErr } = await supabase.from("profiles").upsert({
         user_id: newUser.id,
@@ -145,13 +146,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         verification_status: (role === 'admin' ? 'verified' : (metadata.verification_status || 'pending')) as "pending" | "verified" | "rejected"
       } as any, { onConflict: 'user_id' });
 
+      if (pErr) {
+        console.error("Profile sync error:", pErr);
+        return { error: "Failed to create database profile: " + pErr.message };
+      }
+
       const { error: rErr } = await supabase.from("user_roles").upsert({
         user_id: newUser.id,
         role: role
       }, { onConflict: 'user_id' });
 
-      if (pErr || rErr) console.error("Sync error:", pErr || rErr);
+      if (rErr) {
+        console.error("Role sync error:", rErr);
+        return { error: "Failed to assign user role: " + rErr.message };
+      }
       
+      console.log("Database sync successful for role:", role);
       // Refresh to ensure session has the profile
       await fetchProfile(newUser);
     }
