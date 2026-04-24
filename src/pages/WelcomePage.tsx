@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Info, Code, GraduationCap, BookOpen, User, Laptop } from "lucide-react";
 import resqherLogo from "@/assets/logo.png";
@@ -60,21 +60,28 @@ export default function WelcomePage() {
     );
   }
 
-  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const navigate = useNavigate();
+  const { t } = useI18n();
 
   const startPress = () => {
-    const timer = setTimeout(() => {
+    pressTimerRef.current = setTimeout(() => {
       navigate("/super-admin-login");
     }, 3000);
-    setPressTimer(timer);
   };
 
   const endPress = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      setPressTimer(null);
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    };
+  }, []);
 
   return (
     <div className="h-screen bg-[#050505] flex flex-col items-center justify-between px-8 py-8 max-w-[420px] mx-auto w-full animate-in fade-in duration-700 relative overflow-hidden font-['Inter']">
