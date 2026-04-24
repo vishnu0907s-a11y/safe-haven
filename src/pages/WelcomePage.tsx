@@ -27,7 +27,6 @@ export default function WelcomePage() {
   const { t } = useI18n();
 
   useEffect(() => {
-    if (navigator.vibrate) navigator.vibrate(50);
     const timer = setTimeout(() => setPhase("welcome"), 2800);
     return () => clearTimeout(timer);
   }, []);
