@@ -102,10 +102,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (error) return { error: error.message };
 
-    // Update profile with additional fields after signup
+    // Upsert profile with additional fields after signup
     const { data: { user: newUser } } = await supabase.auth.getUser();
     if (newUser) {
-      const updateData: Record<string, string | null> = {};
+      const updateData: Record<string, any> = { 
+        user_id: newUser.id,
+        full_name: metadata.full_name || 'User'
+      };
+      
       if (metadata.phone) updateData.phone = metadata.phone;
       if (metadata.city) updateData.city = metadata.city;
       if (metadata.date_of_birth) updateData.date_of_birth = metadata.date_of_birth;
@@ -115,9 +119,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (metadata.address) updateData.address = metadata.address;
       if (metadata.verification_status) updateData.verification_status = metadata.verification_status;
 
-      if (Object.keys(updateData).length > 0) {
-        await supabase.from("profiles").update(updateData).eq("user_id", newUser.id);
-      }
+      // Use upsert to create or update the profile row
+      const { error: profileError } = await supabase.from("profiles").upsert(updateData, { onConflict: 'user_id' });
+      if (profileError) console.error("Profile Upsert Error:", profileError);
+
+      // Ensure user role is also created/updated
+      await supabase.from("user_roles").upsert({ user_id: newUser.id, role }, { onConflict: 'user_id' });
     }
 
     return {};
