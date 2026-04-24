@@ -61,8 +61,6 @@ export default function WelcomePage() {
   }
 
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const navigate = useNavigate();
-  const { t } = useI18n();
 
   const startPress = () => {
     pressTimerRef.current = setTimeout(() => {
