@@ -2,11 +2,19 @@ import { useState, useEffect } from "react";
 import { 
   Users, ShieldCheck, UserX, Trash2, 
   Search, Filter, CheckCircle2, XCircle, 
-  AlertCircle, Activity, LayoutDashboard
+  AlertCircle, Activity, LayoutDashboard, UserPlus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface AdminProfile {
   user_id: string;
@@ -21,6 +29,8 @@ export default function SuperAdminDashboard() {
   const [admins, setAdmins] = useState<AdminProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "" });
 
   const fetchAdmins = async () => {
     setLoading(true);
@@ -53,6 +63,54 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     fetchAdmins();
   }, []);
+
+  const handleCreateAdmin = async () => {
+    if (!newAdmin.email || !newAdmin.password || !newAdmin.name) {
+      toast.error("Please fill all fields.");
+      return;
+    }
+    setCreating(true);
+    try {
+      // 1. Create the Auth user
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: newAdmin.email,
+        password: newAdmin.password,
+        options: {
+          data: { full_name: newAdmin.name, role: 'admin' }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (data.user) {
+        // 2. Insert into profiles (verified by default)
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          user_id: data.user.id,
+          full_name: newAdmin.name,
+          verification_status: 'verified'
+        }, { onConflict: 'user_id' });
+
+        if (profileError) throw profileError;
+
+        // 3. Insert into user_roles
+        const { error: roleError } = await supabase.from("user_roles").upsert({
+          user_id: data.user.id,
+          role: 'admin'
+        }, { onConflict: 'user_id' });
+
+        if (roleError) throw roleError;
+
+        toast.success("New Administrator registered and verified!");
+        setNewAdmin({ name: "", email: "", password: "" });
+        fetchAdmins();
+      }
+    } catch (err: any) {
+      console.error("Creation error:", err);
+      toast.error(err.message || "Registration failed.");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleAction = async (uid: string, action: "approve" | "reject" | "delete") => {
     try {
@@ -100,6 +158,61 @@ export default function SuperAdminDashboard() {
           </div>
           
           <div className="flex items-center gap-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs tracking-widest transition-all shadow-xl shadow-purple-900/20 active:scale-[0.98]">
+                  <UserPlus className="w-4 h-4" />
+                  CREATE NEW ADMIN
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#0A0A0A] border-white/10 text-white rounded-3xl p-8 max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
+                    <UserPlus className="text-purple-500" />
+                    Register New Admin
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">Full Name</label>
+                    <Input 
+                      placeholder="e.g. John Doe" 
+                      value={newAdmin.name}
+                      onChange={e => setNewAdmin({...newAdmin, name: e.target.value})}
+                      className="bg-[#151515] border-white/5 h-12 rounded-xl" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">Email Address</label>
+                    <Input 
+                      type="email"
+                      placeholder="admin@resqher.com" 
+                      value={newAdmin.email}
+                      onChange={e => setNewAdmin({...newAdmin, email: e.target.value})}
+                      className="bg-[#151515] border-white/5 h-12 rounded-xl" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">Initial Password</label>
+                    <Input 
+                      type="password"
+                      placeholder="••••••••" 
+                      value={newAdmin.password}
+                      onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                      className="bg-[#151515] border-white/5 h-12 rounded-xl" 
+                    />
+                  </div>
+                  <button 
+                    onClick={handleCreateAdmin}
+                    disabled={creating}
+                    className="w-full py-4 mt-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-sm tracking-widest transition-all shadow-xl shadow-purple-900/20 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {creating ? "INITIALIZING..." : "CONFIRM REGISTRATION"}
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
               <input 
