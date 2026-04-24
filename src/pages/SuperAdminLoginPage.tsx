@@ -53,17 +53,22 @@ export default function SuperAdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate high-security multi-layer validation
-    // In a real app, this would be an encrypted API call
+    // Simulate high-security multi-layer validation against the vault
     setTimeout(() => {
-      if (formData.secretCode === "SUPERSAFE2024") {
-        toast.success("Identity Verified. Welcome Master Admin.");
+      if (
+        formData.email === "visnu01super.ad@gmail.com" && 
+        formData.pass1 === "p1_secure" &&
+        formData.pass2 === "p2_secure" &&
+        formData.pass3 === "p3_secure" &&
+        formData.secretCode === "SUPERSAFE2024"
+      ) {
+        toast.success("Identity Verified. Accessing Super Admin Vault...");
         navigate("/super-admin-dashboard");
       } else {
-        toast.error("Multi-layer Authentication Failed.");
+        toast.error("Multi-layer Authentication Failed. Access Denied.");
       }
       setLoading(false);
-    }, 2000);
+    }, 2500);
   };
 
   return (
