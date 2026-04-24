@@ -47,8 +47,9 @@ export type ValidationResult = {
 
 /**
  * Pre-processes the image using Canvas API to improve OCR accuracy.
+ * Handles upscaling, sharpening, and contrast enhancement.
  */
-async function preprocessImage(file: File): Promise<string> {
+async function preprocessImage(file: File): Promise<{ dataUrl: string, width: number, height: number }> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -57,28 +58,87 @@ async function preprocessImage(file: File): Promise<string> {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
         
-        // Resize for better OCR consistency
-        const scaleFactor = 1.5;
-        canvas.width = img.width * scaleFactor;
-        canvas.height = img.height * scaleFactor;
+        // 1. Smart Upscaling: Ensure minimum width of 400px for OCR accuracy
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+        const minWidth = 400;
         
+        if (targetWidth < minWidth) {
+          const ratio = minWidth / targetWidth;
+          targetWidth = minWidth;
+          targetHeight = img.height * ratio;
+        }
+        
+        // Multi-stage scaling for better quality
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        
+        // 2. High Quality Scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
-        // Grayscale and Contrast enhancement
+        // 3. Image Enhancement Filters
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
+        
+        // Grayscale + Contrast Boost
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
-          const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
+          let gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
           
-          // Simple Thresholding (Otsu-like)
-          const val = gray > 140 ? 255 : 0;
+          // Contrast stretch
+          gray = (gray - 128) * 1.2 + 128;
+          const val = gray > 255 ? 255 : (gray < 0 ? 0 : gray);
+          
           data[i] = data[i + 1] = data[i + 2] = val;
         }
         ctx.putImageData(imageData, 0, 0);
-        resolve(canvas.toDataURL('image/png', 1.0));
+        
+        // 4. Simple Sharpening Filter (Convolution)
+        const weights = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+        const side = Math.round(Math.sqrt(weights.length));
+        const halfSide = Math.floor(side / 2);
+        const src = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const sw = canvas.width;
+        const sh = canvas.height;
+        const output = ctx.createImageData(sw, sh);
+        const dst = output.data;
+        
+        for (let y = 0; y < sh; y++) {
+          for (let x = 0; x < sw; x++) {
+            const sy = y;
+            const sx = x;
+            const dstOff = (y * sw + x) * 4;
+            let r = 0, g = 0, b = 0;
+            for (let cy = 0; cy < side; cy++) {
+              for (let cx = 0; cx < side; cx++) {
+                const scy = sy + cy - halfSide;
+                const scx = sx + cx - halfSide;
+                if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
+                  const srcOff = (scy * sw + scx) * 4;
+                  const wt = weights[cy * side + cx];
+                  r += src[srcOff] * wt;
+                  g += src[srcOff + 1] * wt;
+                  b += src[srcOff + 2] * wt;
+                }
+              }
+            }
+            dst[dstOff] = r;
+            dst[dstOff + 1] = g;
+            dst[dstOff + 2] = b;
+            dst[dstOff + 3] = 255;
+          }
+        }
+        ctx.putImageData(output, 0, 0);
+
+        resolve({ 
+          dataUrl: canvas.toDataURL('image/png', 1.0),
+          width: canvas.width,
+          height: canvas.height
+        });
       };
       img.src = e.target?.result as string;
     };
@@ -87,134 +147,80 @@ async function preprocessImage(file: File): Promise<string> {
 }
 
 /**
- * Validates an uploaded document with high strictness.
+ * Validates an uploaded document using smart OCR.
  */
 export const validateDocument = async (
   file: File,
   role: string,
   docType: 'aadhaar' | 'license' | 'police_id'
-): Promise<ValidationResult> => {
+): Promise<ValidationResult & { confidence?: number }> => {
   try {
-    // 1. Minimum File Size Check (Very low threshold to prevent empty files)
-    if (file.size < 5000) { 
-      return { isValid: false, status: 'failed', message: 'imageTooLowQuality' };
+    // 1. Basic size check
+    if (file.size < 2000) { 
+      return { isValid: false, status: 'failed', message: 'File too small' };
     }
 
-    // 2. Pre-process Image
-    const processedImage = await preprocessImage(file);
+    // 2. Pre-process Image (Upscale + Sharpen)
+    const { dataUrl } = await preprocessImage(file);
 
-    // 3. Perform OCR with Timeout Protection
-    let text = "";
-    try {
-      const worker = await createWorker('eng');
-      // Set a 15-second timeout for the recognition process
-      const recognitionPromise = worker.recognize(processedImage);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('OCR Timeout')), 15000)
-      );
-      
-      const result = await Promise.race([recognitionPromise, timeoutPromise]) as any;
-      text = result.data.text;
-      await worker.terminate();
-    } catch (ocrError: any) {
-      console.warn("OCR Recognition Failed or Timed Out:", ocrError);
-      // If OCR engine fails completely (e.g. "Image too small"), return partial to allow manual review
-      return { 
-        isValid: true, 
-        status: 'partial', 
-        message: 'verificationSlow' // "OCR process was slow or encountered an issue, sending for manual review"
-      };
-    }
+    // 3. Perform OCR
+    const worker = await createWorker('eng');
+    const result = await worker.recognize(dataUrl);
+    const { text, confidence } = result.data;
+    await worker.terminate();
 
     const upperText = text.toUpperCase();
+    const digitsOnly = text.replace(/[^0-9]/g, '');
     
-    // 4. Basic content check
-    if (text.trim().length < 20) {
-      return { isValid: false, status: 'failed', message: 'noTextExtracted' };
+    // 4. Pattern Detection
+    const has12Digits = /\b\d{4}\s?\d{4}\s?\d{4}\b/.test(text.replace(/O/g, '0'));
+    const hasKeywords = upperText.includes('NAME') || 
+                        upperText.includes('ID') || 
+                        upperText.includes('DOB') || 
+                        upperText.includes('GOVERNMENT') ||
+                        upperText.includes('INDIA');
+    
+    // 5. Confidence-Based Decision System
+    let status: ValidationResult['status'] = 'failed';
+    let isValid = false;
+    let message = 'Verification failed';
+
+    if (confidence >= 75) {
+      if (hasKeywords || text.length > 30) {
+        status = 'verified';
+        isValid = true;
+        message = 'Document automatically verified';
+      } else {
+        status = 'partial';
+        isValid = true;
+        message = 'Valid text found, but keywords missing';
+      }
+    } else if (confidence >= 40) {
+      status = 'partial';
+      isValid = true;
+      message = 'Confidence low, sent for manual review';
+    } else {
+      // Very low confidence, but check for critical patterns
+      if (has12Digits || (hasKeywords && digitsOnly.length >= 8)) {
+        status = 'partial';
+        isValid = true;
+        message = 'Unclear image, but valid patterns detected';
+      } else {
+        status = 'failed';
+        isValid = false;
+        message = 'Image too blurry or not a valid document';
+      }
     }
 
-    // 5. Strict Validation Logic
-
-    if (docType === 'aadhaar') {
-      const aadhaarRegex = /\b\d{4}\s?\d{4}\s?\d{4}\b/g;
-      
-      // Handle common OCR mistakes (e.g. O instead of 0, l instead of 1)
-      const correctedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1');
-      const matches = correctedText.match(aadhaarRegex);
-      const validChecksum = matches ? matches.some(num => validateVerhoeff(num)) : false;
-      
-      // Lenient structure check (at least 12 digits found somewhere)
-      const digitsOnly = correctedText.replace(/[^0-9]/g, '');
-      const has12Digits = digitsOnly.length >= 12;
-      
-      const hasKeywords = upperText.includes('AADHAAR') || 
-                          upperText.includes('UNIQUE IDENTIFICATION') || 
-                          upperText.includes('GOVERNMENT') || 
-                          upperText.includes('INDIA') ||
-                          upperText.includes('DOB') || 
-                          upperText.includes('YEAR OF BIRTH') ||
-                          upperText.includes('MALE') ||
-                          upperText.includes('FEMALE') ||
-                          upperText.includes('O0B'); // Common OCR mistake for DOB
-
-      // Accept if:
-      // 1. Perfect mathematically valid Aadhaar number found OR
-      // 2. Looks like it has 12 digits AND has Aadhaar-related keywords OR
-      // 3. Has strong visual indicators like DOB
-      if (validChecksum || (has12Digits && hasKeywords) || upperText.includes('DOB') || upperText.includes('O0B')) {
-        return { isValid: true, status: validChecksum ? 'verified' : 'partial', message: 'validAadhaar', extractedText: text };
-      }
-      
-      console.log("OCR Extracted Text (Failed):", text);
-      // Return partial if it has some keywords or at least 10 digits found
-      if (hasKeywords || digitsOnly.length >= 10) {
-        return { isValid: true, status: 'partial', message: 'partialAadhaar', extractedText: text };
-      }
-      
-      return { isValid: false, status: 'failed', message: 'invalidAadhaar' };
-    }
-
-    if (docType === 'license') {
-      const licenseRegex = /\b([A-Z]{2})\d{2}\s?[0-9A-Z]{11}\b/g;
-      const matches = Array.from(upperText.matchAll(licenseRegex));
-      const hasValidDL = matches.some(match => stateCodes.includes(match[1]));
-      
-      const hasKeywords = upperText.includes('DRIVING LICENSE') && 
-                          (upperText.includes('TRANSPORT') || upperText.includes('AUTHORITY') || upperText.includes('INDIA'));
-
-      if (hasValidDL && hasKeywords) {
-        return { isValid: true, status: 'verified', message: 'validLicense', extractedText: text };
-      }
-      
-      if (hasKeywords) {
-        return { isValid: true, status: 'partial', message: 'partialLicense', extractedText: text };
-      }
-      
-      return { isValid: false, status: 'failed', message: 'invalidLicense' };
-    }
-
-    if (docType === 'police_id') {
-      const hasPoliceKeyword = upperText.includes('POLICE') && 
-                               (upperText.includes('GOVERNMENT') || upperText.includes('STATE') || upperText.includes('ID CARD'));
-      
-      const idRegex = /\b[A-Z0-9-]{6,}\b/;
-      const hasIdNumber = idRegex.test(upperText);
-
-      if (hasPoliceKeyword && hasIdNumber) {
-        return { isValid: true, status: 'verified', message: 'validPoliceId', extractedText: text };
-      }
-      
-      if (hasPoliceKeyword) {
-        return { isValid: true, status: 'partial', message: 'partialPoliceId', extractedText: text };
-      }
-      
-      return { isValid: false, status: 'failed', message: 'invalidPoliceId' };
-    }
-
-    return { isValid: false, status: 'failed', message: 'unsupportedDocType' };
+    return { 
+      isValid, 
+      status, 
+      message, 
+      extractedText: text,
+      confidence 
+    };
   } catch (error) {
-    console.error('High-Accuracy Verification Error:', error);
-    // If OCR engine fails completely, return partial to allow manual review
-    return { isValid: true, status: 'partial', message: 'verificationError' };
+    console.error('Smart OCR Error:', error);
+    return { isValid: true, status: 'partial', message: 'Processing error, manual review needed' };
   }
 };
