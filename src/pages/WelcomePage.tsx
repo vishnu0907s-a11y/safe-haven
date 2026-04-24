@@ -39,28 +39,9 @@ export default function WelcomePage() {
     return () => clearInterval(interval);
   }, [phase]);
 
-  if (phase === "splash") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505]">
-        <div className="flex flex-col items-center gap-8 animate-in fade-in zoom-in-95 duration-700 px-8">
-          <div className="w-32 h-32 flex items-center justify-center">
-            <img src={resqherLogo} className="w-full h-full object-contain mix-blend-screen" alt="ResQHer Logo" />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <h1 className="text-4xl font-black tracking-tight">
-              <span className="text-white">Res</span>
-              <span className="text-[#a855f7]">QHer</span>
-            </h1>
-          </div>
-          <div className="mt-4">
-            <div className="w-7 h-7 border-[2.5px] border-white/20 border-t-[#a855f7] rounded-full animate-spin" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (phase === "splash") {
 
   const startPress = () => {
     pressTimerRef.current = setTimeout(() => {
