@@ -70,6 +70,8 @@ export default function SuperAdminDashboard() {
       return;
     }
     setCreating(true);
+    console.log("Initiating Admin Creation with URL:", import.meta.env.VITE_SUPABASE_URL ? "Loaded" : "Missing");
+
     try {
       // 1. Create the Auth user
       const { data, error: authError } = await supabase.auth.signUp({
@@ -80,7 +82,12 @@ export default function SuperAdminDashboard() {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message.includes("API key")) {
+          toast.error("Environment Sync Error: Please check Vercel Environment Variables.");
+        }
+        throw authError;
+      }
 
       if (data.user) {
         // 2. Insert into profiles (verified by default)
