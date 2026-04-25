@@ -64,12 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.warn("Profile or role missing for user:", authUser.id);
         // Set a basic user object even if profile is missing to avoid hangs
+        // Use user_metadata as fallback since the trigger might still be processing
         setUser({
           id: authUser.id,
           user_id: authUser.id,
-          full_name: profile?.full_name || authUser.email?.split('@')[0] || "User",
+          full_name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "User",
           email: authUser.email!,
-          role: (roleData?.role as any) || "women",
+          role: (roleData?.role as any) || (authUser.user_metadata?.role as any) || "women",
           verification_status: (profile?.verification_status as any) || "pending",
           created_at: profile?.created_at || new Date().toISOString(),
           updated_at: profile?.updated_at || new Date().toISOString(),
@@ -81,9 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser({
         id: authUser.id,
         user_id: authUser.id,
-        full_name: authUser.email?.split('@')[0] || "User",
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "User",
         email: authUser.email!,
-        role: "women",
+        role: (authUser.user_metadata?.role as any) || "women",
         verification_status: "pending",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
