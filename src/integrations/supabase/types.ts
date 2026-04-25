@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      admins: {
+        Row: {
+          admin_level: string | null
+          created_at: string | null
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_level?: string | null
+          created_at?: string | null
+          department?: string | null
+          email: string
+          full_name: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_level?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       danger_zones: {
         Row: {
           created_at: string
