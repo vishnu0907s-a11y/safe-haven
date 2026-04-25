@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        data: { full_name: metadata.full_name, role },
+        data: { ...metadata, role },
         emailRedirectTo: window.location.origin,
       },
     });

@@ -180,18 +180,23 @@ CREATE POLICY "Parties can view rescue records" ON public.rescue_records FOR SEL
 -- 8. AUTH TRIGGER (AUTO-CONFIRM AND SYNC)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_role public.app_role;
 BEGIN
-  -- Auto-confirm email
+  -- 1. Extract role from metadata
+  user_role := COALESCE((NEW.raw_user_meta_data->>'role')::public.app_role, 'women'::public.app_role);
+
+  -- 2. Auto-confirm email
   UPDATE auth.users SET email_confirmed_at = now(), confirmed_at = now(), last_sign_in_at = now() WHERE id = NEW.id;
 
-  -- Create profile
+  -- 3. Create profile
   INSERT INTO public.profiles (user_id, full_name, phone, city, verification_status)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
     NEW.raw_user_meta_data->>'phone',
     NEW.raw_user_meta_data->>'city',
-    CASE WHEN NEW.raw_user_meta_data->>'role' = 'admin' THEN 'verified'::public.verification_status ELSE 'pending'::public.verification_status END
+    CASE WHEN user_role = 'admin' THEN 'verified'::public.verification_status ELSE 'pending'::public.verification_status END
   )
   ON CONFLICT (user_id) DO UPDATE 
   SET full_name = EXCLUDED.full_name,
@@ -199,10 +204,27 @@ BEGIN
       city = EXCLUDED.city,
       verification_status = EXCLUDED.verification_status;
 
-  -- Assign role
+  -- 4. Assign role in user_roles table
   INSERT INTO public.user_roles (user_id, role)
-  VALUES (NEW.id, COALESCE((NEW.raw_user_meta_data->>'role')::public.app_role, 'women'::public.app_role))
+  VALUES (NEW.id, user_role)
   ON CONFLICT (user_id, role) DO NOTHING;
+
+  -- 5. Populate role-specific tables
+  IF user_role = 'women' THEN
+    INSERT INTO public.women (user_id) VALUES (NEW.id) ON CONFLICT DO NOTHING;
+  ELSIF user_role = 'police' THEN
+    INSERT INTO public.police (user_id, badge_number, station_name) 
+    VALUES (NEW.id, NEW.raw_user_meta_data->>'badge_number', NEW.raw_user_meta_data->>'station_name') 
+    ON CONFLICT DO NOTHING;
+  ELSIF user_role = 'driver' THEN
+    INSERT INTO public.driver (user_id, license_number, vehicle_number) 
+    VALUES (NEW.id, NEW.raw_user_meta_data->>'license_number', NEW.raw_user_meta_data->>'vehicle_number') 
+    ON CONFLICT DO NOTHING;
+  ELSIF user_role = 'protector' THEN
+    INSERT INTO public.protector (user_id, id_proof_type, id_proof_number) 
+    VALUES (NEW.id, NEW.raw_user_meta_data->>'id_proof_type', NEW.raw_user_meta_data->>'id_proof_number') 
+    ON CONFLICT DO NOTHING;
+  END IF;
 
   RETURN NEW;
 END;
