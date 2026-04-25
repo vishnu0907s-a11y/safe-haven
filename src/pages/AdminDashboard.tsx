@@ -226,7 +226,7 @@ export default function AdminDashboard() {
     { label: t("onDuty"), value: onDutyRescuers.length, icon: Shield, color: "text-warning" },
   ];
 
-  if (!user) return null;
+  if (!user) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-4 md:space-y-8 pb-4 md:pb-8">

@@ -43,30 +43,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async (authUser: SupabaseUser) => {
     try {
+      console.log("Fetching profile and roles for:", authUser.id);
       const [{ data: profile }, { data: roleData }] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", authUser.id).maybeSingle(),
       ]);
 
-      if (profile) {
-        const userRole = (roleData?.role || authUser.user_metadata?.role || "women") as UserRole;
+      console.log("Profile and role data fetched:", { profile, roleData });
+
+      if (profile && roleData) {
         setUser({
           ...profile,
-          role: userRole,
-          email: authUser.email || "",
+          role: roleData.role,
+          email: authUser.email!,
         });
       } else {
-        const userRole = (roleData?.role || authUser.user_metadata?.role || "women") as UserRole;
+        console.warn("Profile or role missing for user:", authUser.id);
+        // Set a basic user object even if profile is missing to avoid hangs
         setUser({
+          id: authUser.id,
           user_id: authUser.id,
-          full_name: authUser.user_metadata?.full_name || "User",
-          role: userRole,
-          email: authUser.email || "",
-          verification_status: "pending" as const
+          full_name: profile?.full_name || authUser.email || "User",
+          email: authUser.email!,
+          role: (roleData?.role as any) || "women",
+          verification_status: (profile?.verification_status as any) || "pending",
+          created_at: profile?.created_at || new Date().toISOString(),
+          updated_at: profile?.updated_at || new Date().toISOString(),
         } as any);
       }
     } catch (err) {
       console.error("fetchProfile error:", err);
+      // Fallback to avoid infinite loading screen
+      setUser({
+        id: authUser.id,
+        user_id: authUser.id,
+        full_name: authUser.email?.split('@')[0] || "User",
+        email: authUser.email!,
+        role: "women", // Default role
+        verification_status: "pending",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
     } finally {
       setLoading(false);
     }
@@ -132,63 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const newUser = data.user;
     if (newUser) {
       console.log("New user created in Auth:", newUser.id);
-      // FORCE sync to tables
-      const { error: pErr } = await supabase.from("profiles").upsert({
-        user_id: newUser.id,
-        full_name: metadata.full_name || 'User',
-        phone: metadata.phone || null,
-        city: metadata.city || null,
-        date_of_birth: metadata.date_of_birth || null,
-        vehicle_number: metadata.vehicle_number || null,
-        station_name: metadata.station_name || null,
-        police_id: metadata.police_id || null,
-        address: metadata.address || null,
-        verification_status: (role === 'admin' ? 'verified' : (metadata.verification_status || 'pending')) as "pending" | "verified" | "rejected"
-      } as any, { onConflict: 'user_id' });
-
-      if (pErr) {
-        console.error("Profile sync error:", pErr);
-        return { error: "Failed to create database profile: " + pErr.message };
-      }
-
-      const { error: rErr } = await supabase.from("user_roles").upsert({
-        user_id: newUser.id,
-        role: role
-      }, { onConflict: 'user_id' });
-
-      if (rErr) {
-        console.error("Role sync error:", rErr);
-        return { error: "Failed to assign user role: " + rErr.message };
-      }
-      
-      console.log("Database sync successful for role:", role);
-
-      // 3. Sync to role-specific table
-      if (role !== 'admin') {
-        const roleTableData: any = { 
-          user_id: newUser.id, 
-          full_name: metadata.full_name || 'User',
-          phone: metadata.phone || null
-        };
-        
-        if (role === 'women') {
-          roleTableData.city = metadata.city || null;
-          roleTableData.date_of_birth = metadata.date_of_birth || null;
-        } else if (role === 'driver') {
-          roleTableData.vehicle_number = metadata.vehicle_number || null;
-        } else if (role === 'police') {
-          roleTableData.station_name = metadata.station_name || null;
-          roleTableData.police_id = metadata.police_id || null;
-        } else if (role === 'protector') {
-          roleTableData.address = metadata.address || null;
-        }
-
-        const { error: roleTableErr } = await supabase.from(role as any).upsert(roleTableData, { onConflict: 'user_id' });
-        if (roleTableErr) {
-          console.error(`Error syncing to ${role} table:`, roleTableErr);
-        }
-      }
-
+      // Wait a small moment for trigger to finish processing
+      await new Promise(resolve => setTimeout(resolve, 500));
       // Refresh to ensure session has the profile
       await fetchProfile(newUser);
     }
@@ -203,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, supabaseUser, loading, login, register, logout, isAuthenticated: !!user, refreshProfile }}>
+    <AuthContext.Provider value={{ user, supabaseUser, loading, login, register, logout, isAuthenticated: !!supabaseUser, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

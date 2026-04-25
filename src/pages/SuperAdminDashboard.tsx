@@ -90,26 +90,10 @@ export default function SuperAdminDashboard() {
       }
 
       if (data.user) {
-        // 2. Insert into profiles (verified by default)
-        const { error: profileError } = await supabase.from("profiles").upsert({
-          user_id: data.user.id,
-          full_name: newAdmin.name,
-          verification_status: 'verified'
-        }, { onConflict: 'user_id' });
-
-        if (profileError) throw profileError;
-
-        // 3. Insert into user_roles
-        const { error: roleError } = await supabase.from("user_roles").upsert({
-          user_id: data.user.id,
-          role: 'admin'
-        }, { onConflict: 'user_id' });
-
-        if (roleError) throw roleError;
-
         toast.success("New Administrator registered and verified!");
         setNewAdmin({ name: "", email: "", password: "" });
-        fetchAdmins();
+        // Small delay to allow trigger to complete
+        setTimeout(() => fetchAdmins(), 500);
       }
     } catch (err: any) {
       console.error("Creation error:", err);

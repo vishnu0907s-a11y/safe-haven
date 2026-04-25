@@ -236,7 +236,7 @@ export default function DashboardPage() {
   const sosStartRef = useRef<number>(0);
   const sosAnimRef = useRef<number>(0);
 
-  if (!user) return null;
+  if (!user) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   const triggerSOS = useCallback(async () => {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
