@@ -168,10 +168,8 @@ export default function LoginPage() {
     });
     
     setLoading(false);
-    // Navigate to dashboard if verified, otherwise keep them informed
-    if (verificationStatus === "verified") {
-      navigate("/dashboard");
-    }
+    // Always navigate to dashboard after successful registration
+    navigate("/dashboard");
   };
 
   const roleFields = () => {

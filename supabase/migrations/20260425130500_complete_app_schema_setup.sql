@@ -183,11 +183,8 @@ RETURNS TRIGGER AS $$
 DECLARE
   user_role public.app_role;
 BEGIN
-  -- 1. Extract role from metadata
+  -- 2. Extract role from metadata
   user_role := COALESCE((NEW.raw_user_meta_data->>'role')::public.app_role, 'women'::public.app_role);
-
-  -- 2. Auto-confirm email
-  UPDATE auth.users SET email_confirmed_at = now(), confirmed_at = now(), last_sign_in_at = now() WHERE id = NEW.id;
 
   -- 3. Create profile
   INSERT INTO public.profiles (user_id, full_name, phone, city, verification_status)

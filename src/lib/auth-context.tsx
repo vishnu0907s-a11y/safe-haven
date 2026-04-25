@@ -160,10 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const newUser = data.user;
     if (newUser) {
       console.log("New user created in Auth:", newUser.id);
-      // Wait a small moment for trigger to finish processing
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // Refresh to ensure session has the profile
-      await fetchProfile(newUser);
     }
     
     return {};
