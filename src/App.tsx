@@ -24,8 +24,13 @@ import NotFound from "@/pages/NotFound";
 import ComplaintPage from "@/pages/ComplaintPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin glow-primary" /></div>;
+  
+  // If authenticated but no user profile yet, keep loading
+  if (isAuthenticated && !user) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin glow-primary" /></div>;
+  
   if (!isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -33,7 +38,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { isAuthenticated, user, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin glow-primary" /></div>;
+
+  // If authenticated but no user profile yet, keep loading to avoid redirecting to wrong role dashboard
+  if (isAuthenticated && !user) return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin glow-primary" /></div>;
 
   return (
     <Routes>

@@ -42,12 +42,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (authUser: SupabaseUser) => {
+    setLoading(true);
     try {
       console.log("Fetching profile and roles for:", authUser.id);
-      const [{ data: profile }, { data: roleData }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", authUser.id).maybeSingle(),
-      ]);
+      
+      // Use individual awaits to catch specific errors and avoid Promise.all hang
+      const { data: profile, error: pErr } = await supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle();
+      if (pErr) console.error("Profile fetch error:", pErr);
+      
+      const { data: roleData, error: rErr } = await supabase.from("user_roles").select("role").eq("user_id", authUser.id).maybeSingle();
+      if (rErr) console.error("Role fetch error:", rErr);
 
       console.log("Profile and role data fetched:", { profile, roleData });
 
@@ -63,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({
           id: authUser.id,
           user_id: authUser.id,
-          full_name: profile?.full_name || authUser.email || "User",
+          full_name: profile?.full_name || authUser.email?.split('@')[0] || "User",
           email: authUser.email!,
           role: (roleData?.role as any) || "women",
           verification_status: (profile?.verification_status as any) || "pending",
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user_id: authUser.id,
         full_name: authUser.email?.split('@')[0] || "User",
         email: authUser.email!,
-        role: "women", // Default role
+        role: "women",
         verification_status: "pending",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -91,20 +95,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.id);
       if (session?.user) {
         setSupabaseUser(session.user);
-        await fetchProfile(session.user);
+        fetchProfile(session.user);
       } else {
         setSupabaseUser(null);
         setUser(null);
         setLoading(false);
       }
     });
-
-    // Safety timeout to prevent infinite loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -114,6 +114,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     });
+
+    // Safety timeout increased and only fires if we're still loading
+    const timer = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.warn("Auth loading safety timeout fired");
+          return false;
+        }
+        return prev;
+      });
+    }, 10000);
 
     return () => {
       subscription.unsubscribe();

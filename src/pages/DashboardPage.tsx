@@ -236,7 +236,8 @@ export default function DashboardPage() {
   const sosStartRef = useRef<number>(0);
   const sosAnimRef = useRef<number>(0);
 
-  if (!user) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  // The user is guaranteed to be available here due to ProtectedRoute logic
+  if (!user) return null;
 
   const triggerSOS = useCallback(async () => {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
