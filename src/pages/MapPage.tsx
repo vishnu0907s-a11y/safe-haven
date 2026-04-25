@@ -351,12 +351,12 @@ export default function MapPage() {
       if (error) throw error;
 
       if (data) {
-        let stations: PoliceStation[] = data.map((s: any) => ({
+        let stations: PoliceStation[] = data.map((s) => ({
           id: s.id,
           name: s.name,
           lat: s.latitude,
           lon: s.longitude,
-          phone: s.phone,
+          phone: s.phone || undefined,
         }));
 
         setPoliceStations(stations);

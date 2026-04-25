@@ -174,15 +174,29 @@ export default function AdminDashboard() {
     if (error) toast.error(t("deleteFailed"));
     else { toast.success(t("userRemoved")); setUsers((prev) => prev.filter((u) => u.user_id !== userId)); setDeleteConfirm(null); }
   };
-  const handleApproveUser = async (userId: string) => {
+  const handleApproveUser = async (userId: string, role?: string) => {
     const { error } = await supabase.from("profiles").update({ verification_status: "verified" as any }).eq("user_id", userId);
     if (error) toast.error(t("approvalFailed"));
-    else { toast.success(t("userApproved")); setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u)); fetchStats(); }
+    else { 
+      if (role && role !== 'admin') {
+        await supabase.from(role as any).update({ verification_status: "verified" }).eq("user_id", userId);
+      }
+      toast.success(t("userApproved")); 
+      setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u)); 
+      fetchStats(); 
+    }
   };
-  const handleRejectUser = async (userId: string) => {
+  const handleRejectUser = async (userId: string, role?: string) => {
     const { error } = await supabase.from("profiles").update({ verification_status: "rejected" as any }).eq("user_id", userId);
     if (error) toast.error(t("approvalFailed"));
-    else { toast.success(t("userRejected")); setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u)); fetchStats(); }
+    else { 
+      if (role && role !== 'admin') {
+        await supabase.from(role as any).update({ verification_status: "rejected" }).eq("user_id", userId);
+      }
+      toast.success(t("userRejected")); 
+      setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u)); 
+      fetchStats(); 
+    }
   };
 
   const getProofUrl = (path: string | null) => {
@@ -370,8 +384,8 @@ export default function AdminDashboard() {
                       <div className="flex gap-0.5">
                         {u.verification_status === "pending" && (
                           <>
-                            <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-4 h-4 text-accent" /></button>
-                            <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-4 h-4 text-destructive" /></button>
+                            <button onClick={() => handleApproveUser(u.user_id, u.role)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-4 h-4 text-accent" /></button>
+                            <button onClick={() => handleRejectUser(u.user_id, u.role)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-4 h-4 text-destructive" /></button>
                           </>
                         )}
                         <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-4 h-4 text-muted-foreground" /></button>
@@ -464,8 +478,8 @@ export default function AdminDashboard() {
               <p><span className="text-muted-foreground">{t("status")}:</span> <span className="capitalize">{viewingProof.verification_status}</span></p>
               {viewingProof.verification_status === "pending" && (
                 <div className="flex gap-2">
-                  <button onClick={() => { handleApproveUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "verified" }); }} className="flex-1 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> {t("approve")}</button>
-                  <button onClick={() => { handleRejectUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }} className="flex-1 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><X className="w-4 h-4" /> {t("reject")}</button>
+                  <button onClick={() => { handleApproveUser(viewingProof.user_id, viewingProof.role); setViewingProof({ ...viewingProof, verification_status: "verified" }); }} className="flex-1 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> {t("approve")}</button>
+                  <button onClick={() => { handleRejectUser(viewingProof.user_id, viewingProof.role); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }} className="flex-1 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><X className="w-4 h-4" /> {t("reject")}</button>
                 </div>
               )}
               {(viewingProof.aadhaar_url || viewingProof.driving_license_url) && (

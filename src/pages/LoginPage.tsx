@@ -151,6 +151,10 @@ export default function LoginPage() {
         
         if (Object.keys(updates).length > 0) {
           await supabase.from("profiles").update(updates).eq("user_id", user.id);
+          // Also update the role-specific table if it exists
+          if (selectedRole && selectedRole !== 'admin') {
+            await supabase.from(selectedRole as any).update(updates).eq("user_id", user.id);
+          }
         }
       } catch (err) {
         console.error("Doc upload error:", err);

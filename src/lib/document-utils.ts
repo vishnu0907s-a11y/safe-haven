@@ -40,7 +40,7 @@ const stateCodes = ["AN", "AP", "AR", "AS", "BR", "CH", "CT", "DN", "DD", "DL", 
 
 export type ValidationResult = {
   isValid: boolean;
-  status: 'verified' | 'partial' | 'failed' | 'error';
+  status: 'verified' | 'partial' | 'failed' | 'error' | 'pending';
   message: string;
   extractedText?: string;
 };

@@ -162,6 +162,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log("Database sync successful for role:", role);
+
+      // 3. Sync to role-specific table
+      if (role !== 'admin') {
+        const roleTableData: any = { 
+          user_id: newUser.id, 
+          full_name: metadata.full_name || 'User',
+          phone: metadata.phone || null
+        };
+        
+        if (role === 'women') {
+          roleTableData.city = metadata.city || null;
+          roleTableData.date_of_birth = metadata.date_of_birth || null;
+        } else if (role === 'driver') {
+          roleTableData.vehicle_number = metadata.vehicle_number || null;
+        } else if (role === 'police') {
+          roleTableData.station_name = metadata.station_name || null;
+          roleTableData.police_id = metadata.police_id || null;
+        } else if (role === 'protector') {
+          roleTableData.address = metadata.address || null;
+        }
+
+        const { error: roleTableErr } = await supabase.from(role as any).upsert(roleTableData, { onConflict: 'user_id' });
+        if (roleTableErr) {
+          console.error(`Error syncing to ${role} table:`, roleTableErr);
+        }
+      }
+
       // Refresh to ensure session has the profile
       await fetchProfile(newUser);
     }

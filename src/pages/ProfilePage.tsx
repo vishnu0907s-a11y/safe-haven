@@ -54,6 +54,12 @@ export default function ProfilePage() {
     }
 
     const { error } = await supabase.from("profiles").update(updates).eq("user_id", supabaseUser.id);
+    
+    if (!error && user.role && user.role !== 'admin') {
+      // Sync to role-specific table
+      await supabase.from(user.role as any).update(updates).eq("user_id", supabaseUser.id);
+    }
+
     setSaving(false);
     if (error) {
       toast.error(t("updateFailed"));

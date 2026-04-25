@@ -250,6 +250,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_nearest_police_stations: {
+        Args: {
+          user_lat: number
+          user_lon: number
+          max_count: number
+        }
+        Returns: {
+          id: number
+          name: string
+          latitude: number
+          longitude: number
+          phone: string | null
+          address: string | null
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

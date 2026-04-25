@@ -105,13 +105,13 @@ export default function PoliceStationsPage() {
         console.error("Error fetching police stations:", error);
         setStations([]);
       } else if (data) {
-        const results: PoliceStation[] = data.map((s: any) => ({
+        const results: PoliceStation[] = data.map((s) => ({
           id: s.id,
           name: s.name,
           lat: s.latitude,
           lon: s.longitude,
-          address: s.address,
-          phone: s.phone,
+          address: s.address || undefined,
+          phone: s.phone || undefined,
         }));
         setStations(results);
         addStationMarkers(results);
