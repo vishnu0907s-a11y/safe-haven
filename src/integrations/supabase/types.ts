@@ -245,6 +245,45 @@ export type Database = {
         }
         Relationships: []
       }
+      super_admin_vault: {
+        Row: {
+          admin_email: string
+          admin_name: string
+          created_at: string | null
+          id: string
+          last_login_at: string | null
+          pass1_hash: string
+          pass2_hash: string
+          pass3_hash: string
+          secret_code_hash: string
+          two_fa_enabled: boolean | null
+        }
+        Insert: {
+          admin_email: string
+          admin_name: string
+          created_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          pass1_hash: string
+          pass2_hash: string
+          pass3_hash: string
+          secret_code_hash: string
+          two_fa_enabled?: boolean | null
+        }
+        Update: {
+          admin_email?: string
+          admin_name?: string
+          created_at?: string | null
+          id?: string
+          last_login_at?: string | null
+          pass1_hash?: string
+          pass2_hash?: string
+          pass3_hash?: string
+          secret_code_hash?: string
+          two_fa_enabled?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -269,6 +308,16 @@ export type Database = {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      verify_super_admin: {
+        Args: {
+          p_email: string
+          p_pass1: string
+          p_pass2: string
+          p_pass3: string
+          p_secret: string
         }
         Returns: boolean
       }

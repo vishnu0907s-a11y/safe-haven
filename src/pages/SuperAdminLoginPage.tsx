@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Lock, Key, Mail, User, ShieldAlert, Laptop, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export default function SuperAdminLoginPage() {
@@ -53,23 +54,47 @@ export default function SuperAdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate high-security multi-layer validation against the vault
-    setTimeout(() => {
-      if (
+    try {
+      // 1. First check if it matches the hardcoded credentials (for quick demo/offline)
+      const isHardcodedMatch = 
         formData.email === "visnu01super.ad@gmail.com" && 
-        formData.pass1 === "p1_secure" &&
-        formData.pass2 === "p2_secure" &&
-        formData.pass3 === "p3_secure" &&
-        formData.secretCode === "SUPERSAFE2024"
-      ) {
+        formData.pass1 === "DRAKOOAV9655@~" &&
+        formData.pass2 === "vishnu0907s@~" &&
+        formData.pass3 === "resQher01@~" &&
+        formData.secretCode === "SUPERADMINSAFEE@2026@~";
+
+      if (isHardcodedMatch) {
         sessionStorage.setItem("isSuperAdminAuthenticated", "true");
-        toast.success("Identity Verified. Accessing Super Admin Vault...");
+        toast.success("Identity Verified (Dev Mode). Accessing Super Admin Vault...");
+        navigate("/super-admin-dashboard");
+        return;
+      }
+
+      // 2. Real verification against the database vault
+      const { data: isValid, error } = await supabase.rpc('verify_super_admin', {
+        p_email: formData.email,
+        p_pass1: formData.pass1,
+        p_pass2: formData.pass2,
+        p_pass3: formData.pass3,
+        p_secret: formData.secretCode
+      });
+
+      if (error) {
+        console.error("Vault verification error:", error);
+        toast.error("Security system error. Please try again.");
+      } else if (isValid) {
+        sessionStorage.setItem("isSuperAdminAuthenticated", "true");
+        toast.success("Identity Verified via Vault. Accessing Super Admin Portal...");
         navigate("/super-admin-dashboard");
       } else {
         toast.error("Multi-layer Authentication Failed. Access Denied.");
       }
+    } catch (err) {
+      console.error("Login unexpected error:", err);
+      toast.error("An unexpected error occurred.");
+    } finally {
       setLoading(false);
-    }, 2500);
+    }
   };
 
   return (
