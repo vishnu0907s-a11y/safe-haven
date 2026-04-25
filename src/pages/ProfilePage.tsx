@@ -55,14 +55,12 @@ export default function ProfilePage() {
 
     const { error } = await supabase.from("profiles").update(updates).eq("user_id", supabaseUser.id);
     
-    if (!error && user.role && user.role !== 'admin') {
-      // Sync to role-specific table
-      await supabase.from(user.role as any).update(updates).eq("user_id", supabaseUser.id);
-    }
+    // REMOVED: Don't sync full_name/phone/city to role-specific tables as they don't have these columns.
 
     setSaving(false);
     if (error) {
-      toast.error(t("updateFailed"));
+      console.error("Profile update error:", error);
+      toast.error(`Update failed: ${error.message || "Unknown database error"}`);
     } else {
       toast.success(t("profileUpdated"));
       await refreshProfile();
