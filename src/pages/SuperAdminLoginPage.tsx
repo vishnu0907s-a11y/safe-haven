@@ -56,12 +56,13 @@ export default function SuperAdminLoginPage() {
     
     try {
       // 1. First check if it matches the hardcoded credentials (for quick demo/offline)
+      // Supporting both with and without the '~' for convenience
       const isHardcodedMatch = 
         formData.email === "visnu01super.ad@gmail.com" && 
-        formData.pass1 === "DRAKOOAV9655@~" &&
-        formData.pass2 === "vishnu0907s@~" &&
-        formData.pass3 === "resQher01@~" &&
-        formData.secretCode === "SUPERADMINSAFEE@2026@~";
+        (formData.pass1 === "DRAKOOAV9655@" || formData.pass1 === "DRAKOOAV9655@~") &&
+        (formData.pass2 === "vishnu0907s@" || formData.pass2 === "vishnu0907s@~") &&
+        (formData.pass3 === "resQher01@" || formData.pass3 === "resQher01@~") &&
+        (formData.secretCode === "SUPERADMINSAFEE@2026@" || formData.secretCode === "SUPERADMINSAFEE@2026@~");
 
       if (isHardcodedMatch) {
         sessionStorage.setItem("isSuperAdminAuthenticated", "true");
