@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useSettings } from "@/lib/settings-context";
 import { toast } from "sonner";
 import { getFastLocation } from "@/lib/location-utils";
 
@@ -16,6 +17,7 @@ interface AttendanceRecord {
 
 export function useAttendance() {
   const { supabaseUser, user } = useAuth();
+  const { locationAllowed } = useSettings();
   const [activeShift, setActiveShift] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +45,11 @@ export function useAttendance() {
 
   const checkIn = useCallback(async () => {
     if (!supabaseUser) return;
+    if (!locationAllowed) {
+      toast.error("Please enable 'Location Allow' in Menu to start duty.");
+      return;
+    }
+    
     setCheckingIn(true);
     try {
       const position = await getFastLocation();
@@ -66,7 +73,7 @@ export function useAttendance() {
     } finally {
       setCheckingIn(false);
     }
-  }, [supabaseUser]);
+  }, [supabaseUser, locationAllowed]);
 
   const checkOut = useCallback(async () => {
     if (!activeShift) return;
@@ -82,6 +89,14 @@ export function useAttendance() {
       toast.success("Checked out successfully!");
     }
   }, [activeShift]);
+
+  // Auto-checkout if location is disabled while on duty
+  useEffect(() => {
+    if (activeShift && !locationAllowed) {
+      toast.warning("Location tracking disabled. Checking you out of duty.");
+      checkOut();
+    }
+  }, [locationAllowed, activeShift, checkOut]);
 
   return { activeShift, loading, checkIn, checkOut, isEligible, checkingIn };
 }
