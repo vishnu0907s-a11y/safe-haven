@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { MessageSquare, Send, CheckCircle2, Clock, ChevronLeft, AlertCircle } from "lucide-react";
+import { MessageSquare, Send, CheckCircle2, Clock, ChevronLeft, AlertCircle, Mic, MicOff } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { useComplaints } from "@/hooks/use-complaints";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function ComplaintPage() {
   const { user } = useAuth();
@@ -15,6 +16,40 @@ export default function ComplaintPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  const toggleListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setDescription((prev) => prev + (prev ? " " : "") + transcript);
+      setIsListening(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      setIsListening(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) return;
@@ -80,12 +115,26 @@ export default function ComplaintPage() {
             onChange={(e) => setTitle(e.target.value)}
             className="bg-secondary/50 border-border/40 text-sm h-10"
           />
-          <textarea
-            placeholder="Describe your complaint in detail..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full h-36 text-sm bg-secondary/50 border border-border/40 rounded-xl p-3 resize-none placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
-          />
+          <div className="relative">
+            <textarea
+              placeholder="Describe your complaint in detail..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full h-36 text-sm bg-secondary/50 border border-border/40 rounded-xl p-3 resize-none placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
+            />
+            <button
+              type="button"
+              onClick={toggleListening}
+              className={cn(
+                "absolute bottom-3 right-3 p-2.5 rounded-full transition-all active:scale-90",
+                isListening 
+                  ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/50" 
+                  : "bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20"
+              )}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          </div>
           <p className="text-[10px] text-muted-foreground px-0.5">
             📍 Your location will be shared to route to the nearest admin.
           </p>
