@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ProfileActionsMenu } from "@/components/ProfileActionsMenu";
+import { NotificationsPopover } from "@/components/NotificationsPopover";
 import { cn } from "@/lib/utils";
 import resqherLogo from "@/assets/logo.png";
 
@@ -33,12 +34,7 @@ export function AppHeader() {
       <div className="flex items-center gap-1 sm:gap-2">
         <LanguageToggle compact />
         
-        {user?.role !== "admin" && (
-          <button className="p-1.5 sm:p-3 rounded-full hover:bg-primary/10 transition-all active:scale-90 relative group">
-            <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-            <span className="absolute top-1 sm:top-2.5 right-1 sm:right-2.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-primary rounded-full glow-primary" />
-          </button>
-        )}
+        {user?.role !== "admin" && <NotificationsPopover />}
         <button
           onClick={toggle}
           className="p-1.5 sm:p-3 rounded-full hover:bg-primary/10 transition-all active:scale-90 group"

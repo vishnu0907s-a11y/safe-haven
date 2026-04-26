@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useNotifications } from "@/hooks/use-notifications";
 import { toast } from "sonner";
 import { getFastLocation } from "@/lib/location-utils";
 import { getDistanceKm } from "@/lib/map-utils";
@@ -21,6 +22,7 @@ export interface Complaint {
 
 export function useComplaints() {
   const { supabaseUser, user } = useAuth();
+  const { createNotification } = useNotifications();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -105,6 +107,15 @@ export function useComplaints() {
         } as any);
 
         if (error) throw error;
+        
+        // Notify Admins
+        const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        if (admins) {
+          admins.forEach(adm => {
+            createNotification(adm.user_id, "📝 NEW COMPLAINT", `New complaint from user: ${title}`, "complaint");
+          });
+        }
+
         toast.success("Complaint submitted successfully!");
         fetchComplaints();
         return true;
@@ -126,6 +137,10 @@ export function useComplaints() {
     if (error) {
       toast.error("Failed to resolve complaint");
     } else {
+      const complaint = complaints.find(c => c.id === id);
+      if (complaint) {
+        createNotification(complaint.user_id, "✅ COMPLAINT RESOLVED", `Your complaint "${complaint.title}" has been marked as resolved.`, "complaint");
+      }
       toast.success("Complaint marked as resolved!");
       setComplaints((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status: "resolved" } : c))

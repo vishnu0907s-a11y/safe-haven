@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useAttendance } from "@/hooks/use-attendance";
+import { useNotifications } from "@/hooks/use-notifications";
 import { toast } from "sonner";
 import { getFastLocation } from "@/lib/location-utils";
 
@@ -148,6 +149,7 @@ export function useSendEmergencyAlert() {
 export function useRealtimeAlerts() {
   const { user } = useAuth();
   const { activeShift } = useAttendance();
+  const { createNotification } = useNotifications();
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -223,6 +225,12 @@ export function useRealtimeAlerts() {
               if (prev.find(a => a.id === enrichedAlert.id)) return prev;
               return [enrichedAlert as EmergencyAlert, ...prev];
             });
+            
+            // Notification for responders
+            if (isResponder && isOnDuty) {
+              createNotification(user.user_id, "🚨 NEW SOS ALERT", `Help needed for ${profile?.full_name || "a user"}! Check your dashboard.`, "alert");
+            }
+            
             toast.warning(`🚨 New alert from ${profile?.full_name || "someone"}!`, { duration: 8000 });
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as EmergencyAlert;
@@ -276,6 +284,8 @@ export function useRealtimeAlerts() {
       if (error) {
         toast.error("Failed to accept alert.");
       } else {
+        // Notification for the victim
+        createNotification(alert.user_id, "✅ RESCUE ACCEPTED", `${user.full_name || "A responder"} is coming to help you!`, "alert");
         toast.success("Alert accepted! Navigate to the victim.");
       }
     },
