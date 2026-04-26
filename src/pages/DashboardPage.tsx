@@ -1,4 +1,4 @@
-import { MapPin, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare, MessageCircle, Navigation } from "lucide-react";
+import { MapPin, Shield, AlertTriangle, CheckCircle2, X, Clock, LogIn, LogOut, Gauge, ShieldCheck, Star, MessageSquare, Navigation } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDistanceKm, getEta } from "@/lib/map-utils";
@@ -211,7 +211,7 @@ export default function DashboardPage() {
   const { t } = useI18n();
   const { sendAlert, cancelAlert, sending, activeAlert } = useSendEmergencyAlert();
   const { alerts, acceptAlert, cancelAcceptance } = useRealtimeAlerts();
-  const { contacts, sendWhatsAppAlerts, sendSMSAlerts } = useEmergencyContacts();
+  const { contacts, sendWhatsAppAlerts } = useEmergencyContacts();
   const navigate = useNavigate();
   const { resolveAlert } = useResolveAlert();
   const [showFeedback, setShowFeedback] = useState(false);
@@ -368,14 +368,6 @@ export default function DashboardPage() {
               </div>
                         <button onClick={() => navigate("/map")} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-primary">
                 <MapPin className="w-5 h-5" /> Track Responders on Map
-              </button>
-
-              <button onClick={() => sendWhatsAppAlerts(activeAlert.latitude, activeAlert.longitude)} className="w-full py-3 rounded-xl bg-[#25D366]/10 text-[#25D366] text-sm font-semibold border border-[#25D366]/20 flex items-center justify-center gap-2 active:scale-[0.98]">
-                <MessageSquare className="w-5 h-5" /> Share on WhatsApp
-              </button>
-              
-              <button onClick={() => sendSMSAlerts(activeAlert.latitude, activeAlert.longitude)} className="w-full py-3 rounded-xl bg-secondary text-foreground text-sm font-semibold border border-border flex items-center justify-center gap-2 active:scale-[0.98]">
-                <MessageCircle className="w-5 h-5" /> Share via SMS
               </button>
 
               <button onClick={handleSafeNow} className="w-full py-3 rounded-xl bg-accent text-accent-foreground text-sm font-semibold active:scale-[0.98] flex items-center justify-center gap-2 glow-accent">

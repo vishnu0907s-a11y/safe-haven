@@ -57,57 +57,20 @@ export function useEmergencyContacts() {
     }
   }, []);
 
-  // WhatsApp alert — send to ALL contacts
-  const sendWhatsAppAlerts = useCallback(async (latitude: number, longitude: number) => {
-    if (contacts.length === 0) return;
-
-    const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const messageText = `🚨 *EMERGENCY SOS ALERT* 🚨\n\nI need help immediately! My live location is shown below.\n\n📍 *My Location:* ${mapsUrl}\n\nPlease respond or call emergency services right away!`;
-    const encodedMessage = encodeURIComponent(messageText);
-
-    // 1. Try Native Share API (Best for Mobile, allows multi-select in WhatsApp)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "EMERGENCY SOS",
-          text: messageText,
-        });
-        return; // If share successful, stop here
-      } catch (err) {
-        console.log("Share API cancelled or failed, falling back to direct links...");
-      }
-    }
-
-    // 2. Sequential Opener (Fallback)
-    contacts.forEach((contact, index) => {
-      setTimeout(() => {
-        const phone = contact.phone.replace(/[^0-9+]/g, "");
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`;
-        window.open(whatsappUrl, "_blank");
-      }, index * 800); // Slightly faster
-    });
-
-    toast.info("Opening chats... Click send in each.", { duration: 4000 });
-  }, [contacts]);
-
-  // SMS alert — This IS the only way to "Automatically Select" multiple people at once
-  const sendSMSAlerts = useCallback((latitude: number, longitude: number) => {
+  // Reverted to original logic: Only send to the FIRST contact
+  const sendWhatsAppAlerts = useCallback((latitude: number, longitude: number) => {
     if (contacts.length === 0) return;
     
-    const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const messageText = `EMERGENCY SOS ALERT! I need help immediately! My location: ${mapsUrl}`;
-    
-    // Join all phones for the multi-recipient SMS scheme
-    const phones = contacts.map(c => c.phone.replace(/[^0-9+]/g, "")).join(",");
-    
-    // Different schemes for iOS/Android
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const smsUrl = isIOS 
-      ? `sms:${phones}&body=${encodeURIComponent(messageText)}`
-      : `sms:${phones}?body=${encodeURIComponent(messageText)}`;
-      
-    window.location.href = smsUrl;
+    const contact = contacts[0];
+    const mapsUrl = `https://maps.google.com/maps?q=${latitude},${longitude}`;
+    const message = encodeURIComponent(
+      `🚨 Emergency Alert!\n\nI need help immediately.\n\n📍 My live location:\n${mapsUrl}\n\nPlease respond immediately or call emergency services.`
+    );
+
+    const phone = contact.phone.replace(/[^0-9+]/g, "");
+    const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
+    window.open(whatsappUrl, "_blank");
   }, [contacts]);
 
-  return { contacts, loading, addContact, removeContact, sendWhatsAppAlerts, sendSMSAlerts };
+  return { contacts, loading, addContact, removeContact, sendWhatsAppAlerts };
 }
