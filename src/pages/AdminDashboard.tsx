@@ -15,7 +15,7 @@ import {
 import { getDistanceKm, getEta } from "@/lib/map-utils";
 import { useComplaints, Complaint } from "@/hooks/use-complaints";
 
-const ADMIN_LOCATION = { lat: 13.0827, lng: 80.2707 }; // Fixed admin location
+const FALLBACK_ADMIN_LOCATION = { lat: 13.0827, lng: 80.2707 }; // Fallback if GPS fails
 
 interface UserRow {
   id: string; user_id: string; full_name: string; phone: string | null;
@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [viewingProof, setViewingProof] = useState<UserRow | null>(false as any);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [adminLiveLocation, setAdminLiveLocation] = useState(FALLBACK_ADMIN_LOCATION);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,6 +86,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchUsers(); fetchOnDuty(); fetchStats(); fetchEvidence(); fetchAlerts();
+    
+    // Get real-time admin location for accurate distance calculation
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setAdminLiveLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.warn("Admin GPS access denied or failed, using fallback:", err)
+      );
+    }
+
     const channel = supabase
       .channel("admin-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => fetchOnDuty())
@@ -210,14 +220,14 @@ export default function AdminDashboard() {
     else { toast.success(t("userRemoved")); setUsers((prev) => prev.filter((u) => u.user_id !== userId)); setDeleteConfirm(null); }
   };
   const handleApproveUser = async (userId: string) => {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ verification_status: "verified" as any })
-      .eq("user_id", userId);
+    const { data, error } = await (supabase.rpc as any)("admin_verify_user", {
+      target_user_id: userId,
+      new_status: "verified"
+    });
 
-    if (error) {
-      console.error("Approval error:", error);
-      toast.error(t("approvalFailed"));
+    if (error || (data && typeof data === 'string' && data.startsWith('Denied'))) {
+      console.error("Approval error:", error || data);
+      toast.error(data || t("approvalFailed"));
     } else { 
       toast.success(t("userApproved")); 
       setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u)); 
@@ -225,14 +235,14 @@ export default function AdminDashboard() {
     }
   };
   const handleRejectUser = async (userId: string) => {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ verification_status: "rejected" as any })
-      .eq("user_id", userId);
+    const { data, error } = await (supabase.rpc as any)("admin_verify_user", {
+      target_user_id: userId,
+      new_status: "rejected"
+    });
 
-    if (error) {
-      console.error("Rejection error:", error);
-      toast.error(t("approvalFailed"));
+    if (error || (data && typeof data === 'string' && data.startsWith('Denied'))) {
+      console.error("Rejection error:", error || data);
+      toast.error(data || t("approvalFailed"));
     } else { 
       toast.success(t("userRejected")); 
       setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u)); 
@@ -252,7 +262,7 @@ export default function AdminDashboard() {
   });
   const filteredAlerts = adminAlerts
     .map(alert => {
-      const dist = getDistanceKm(ADMIN_LOCATION.lat, ADMIN_LOCATION.lng, alert.latitude, alert.longitude);
+      const dist = getDistanceKm(adminLiveLocation.lat, adminLiveLocation.lng, alert.latitude, alert.longitude);
       const eta = getEta(dist);
       return { ...alert, distance: dist, eta };
     })
@@ -321,6 +331,48 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* EMERGENCY ALERTS (Within 30 KM) - RE-ADDED TO DASHBOARD */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              <p className="text-sm font-bold uppercase tracking-wider text-destructive">Emergency Alerts (Within 30 KM)</p>
+            </div>
+            {(() => {
+              const activeNearby = filteredAlerts.filter(a => a.status === "active" && a.distance <= 30);
+              return activeNearby.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-card border border-dashed text-center">
+                  <p className="text-xs text-muted-foreground">No active emergencies nearby</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeNearby.map((alert) => (
+                    <div key={alert.id} className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar url={alert.avatar_url} name={alert.user_name || "Unknown"} className="w-10 h-10 rounded-xl" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">{alert.user_name}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <MapPin className="w-3 h-3" /> {alert.distance.toFixed(1)} KM • {alert.eta}
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[8px] font-black uppercase tracking-widest animate-pulse">SOS</span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          const link = `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`;
+                          window.open(`https://wa.me/?text=${encodeURIComponent('Emergency Location: ' + link)}`, '_blank');
+                        }}
+                        className="w-full py-2 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold hover:bg-destructive/90 transition-all active:scale-[0.98]"
+                      >
+                        Share Alert
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </>
       )}
