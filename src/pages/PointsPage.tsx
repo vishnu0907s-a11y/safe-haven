@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, Trophy, Target, TrendingUp, ChevronDown, ChevronUp, X } from "lucide-react";
 import { useRescueRecords } from "@/hooks/use-rescue-records";
 import { useAuth } from "@/lib/auth-context";
