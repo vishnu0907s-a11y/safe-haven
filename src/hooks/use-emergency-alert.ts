@@ -226,11 +226,6 @@ export function useRealtimeAlerts() {
               return [enrichedAlert as EmergencyAlert, ...prev];
             });
             
-            // Notification for responders
-            if (isResponder && isOnDuty) {
-              createNotification(user.user_id, "🚨 NEW SOS ALERT", `Help needed for ${profile?.full_name || "a user"}! Check your dashboard.`, "alert");
-            }
-            
             toast.warning(`🚨 New alert from ${profile?.full_name || "someone"}!`, { duration: 8000 });
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as EmergencyAlert;
@@ -284,8 +279,6 @@ export function useRealtimeAlerts() {
       if (error) {
         toast.error("Failed to accept alert.");
       } else {
-        // Notification for the victim
-        createNotification(alert.user_id, "✅ RESCUE ACCEPTED", `${user.full_name || "A responder"} is coming to help you!`, "alert");
         toast.success("Alert accepted! Navigate to the victim.");
       }
     },

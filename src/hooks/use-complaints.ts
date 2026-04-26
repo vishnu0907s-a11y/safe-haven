@@ -107,15 +107,6 @@ export function useComplaints() {
         } as any);
 
         if (error) throw error;
-        
-        // Notify Admins
-        const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-        if (admins) {
-          admins.forEach(adm => {
-            createNotification(adm.user_id, "📝 NEW COMPLAINT", `New complaint from user: ${title}`, "complaint");
-          });
-        }
-
         toast.success("Complaint submitted successfully!");
         fetchComplaints();
         return true;
@@ -137,10 +128,6 @@ export function useComplaints() {
     if (error) {
       toast.error("Failed to resolve complaint");
     } else {
-      const complaint = complaints.find(c => c.id === id);
-      if (complaint) {
-        createNotification(complaint.user_id, "✅ COMPLAINT RESOLVED", `Your complaint "${complaint.title}" has been marked as resolved.`, "complaint");
-      }
       toast.success("Complaint marked as resolved!");
       setComplaints((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status: "resolved" } : c))
