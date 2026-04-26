@@ -375,7 +375,7 @@ export default function AdminDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filtered.map((u) => (
-                  <div key={u.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-card border transition-all hover:shadow-md">
+                  <div key={u.id} className="flex items-center gap-4 p-4 rounded-2xl bg-transparent border border-transparent hover:bg-primary/5 hover:border-primary/20 transition-all active:scale-[0.98] group">
                     <Avatar 
                       url={u.avatar_url} 
                       name={u.full_name} 
@@ -649,10 +649,10 @@ export default function AdminDashboard() {
                   <button
                     key={c.id}
                     onClick={() => setSelectedComplaint(c)}
-                    className="w-full text-left p-4 rounded-xl bg-card border hover:border-orange-500/30 hover:bg-orange-500/5 transition-all active:scale-[0.98] space-y-2"
+                    className="w-full text-left p-5 rounded-2xl bg-transparent border border-transparent hover:bg-orange-500/5 hover:border-orange-500/20 transition-all active:scale-[0.98] space-y-3 group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center text-sm font-black border border-orange-500/20 shrink-0">
+                      <div className="w-11 h-11 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center text-base font-black border border-orange-500/20 shrink-0 transition-transform duration-300 group-hover:scale-110">
                         {c.profiles?.full_name?.charAt(0) || "?"}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Avatar } from "@/components/Avatar";
+import { ProfileActionsMenu } from "@/components/ProfileActionsMenu";
 
 export default function ProfilePage() {
   const { user, logout, refreshProfile, supabaseUser } = useAuth();
@@ -22,6 +23,7 @@ export default function ProfilePage() {
   const [editPhone, setEditPhone] = useState("");
   const [editCity, setEditCity] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [showVerificationStatus, setShowVerificationStatus] = useState(false);
 
   if (!user) return null;
 
@@ -152,6 +154,66 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Verification Status Dialog */}
+      {showVerificationStatus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowVerificationStatus(false)}>
+          <div className="rounded-3xl bg-card/95 backdrop-blur-2xl border glow-border p-6 w-full max-w-sm space-y-6 animate-in zoom-in-95 duration-300 text-center shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowVerificationStatus(false)} className="absolute top-4 right-4 p-2 rounded-full hover:bg-secondary transition-colors"><X className="w-4 h-4" /></button>
+            
+            <div className="flex flex-col items-center gap-5 pt-4">
+              <div className={cn(
+                "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 shadow-inner",
+                user.verification_status === "verified" ? "bg-accent/20 glow-accent" : "bg-warning/20 glow-warning"
+              )}>
+                <Shield className={cn(
+                  "w-12 h-12",
+                  user.verification_status === "verified" ? "text-accent" : "text-warning"
+                )} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className={cn(
+                  "text-2xl font-black tracking-tight",
+                  user.verification_status === "verified" ? "text-accent" : "text-warning"
+                )}>
+                  {user.verification_status === "verified" ? "APPROVED" : "PENDING REVIEW"}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed px-2">
+                  {user.verification_status === "verified" 
+                    ? "Congratulations! Your profile has been officially verified by the ResQHer administration." 
+                    : "Your documents are currently being reviewed by our administration team. This usually takes 24-48 hours."}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-secondary/30 border border-border/20 text-left space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Verification Details</p>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Authorized Role</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-primary">{user.role}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Registered Name</span>
+                  <span className="text-xs font-bold">{user.full_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Assigned City</span>
+                  <span className="text-xs font-bold">{user.city || "UNASSIGNED"}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowVerificationStatus(false)}
+              className="w-full py-4 rounded-2xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest glow-primary transition-all active:scale-[0.97]"
+            >
+              Understand
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Info row */}
       <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="flex items-center justify-between mb-3">
@@ -179,7 +241,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Location info */}
-      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+      <div className="rounded-2xl bg-transparent border glow-border p-5 space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
         <div>
           <p className="label-caps mb-2">{t("fleetAssociation")}</p>
           <div className="flex items-center justify-between">
@@ -212,21 +274,26 @@ export default function ProfilePage() {
       </div>
 
       {/* Diagnostics & settings */}
-      <div className="rounded-2xl bg-card/80 backdrop-blur-lg border glow-border p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
+      <div className="rounded-2xl bg-transparent border glow-border p-5 space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500 delay-200">
         <p className="label-caps mb-1">{t("diagnosticsSettings")}</p>
         {menuItems.map((item) => (
           <button
             key={item.label}
-            className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-border/40 hover:border-primary/30 transition-all active:scale-[0.98]"
+            onClick={() => {
+              if (item.label === t("verificationStatus")) {
+                setShowVerificationStatus(true);
+              }
+            }}
+            className="w-full flex items-center gap-3.5 p-4 rounded-2xl bg-transparent hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all active:scale-[0.98] group"
           >
-            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center glow-primary">
-              <item.icon className="w-4 h-4 text-muted-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center glow-primary group-hover:scale-110 transition-transform duration-300">
+              <item.icon className="w-4.5 h-4.5 text-primary" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-semibold">{item.label}</p>
-              <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+              <p className="text-sm font-bold group-hover:text-primary transition-colors">{item.label}</p>
+              <p className="text-[11px] text-muted-foreground">{item.desc}</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all" />
           </button>
         ))}
 
@@ -251,7 +318,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Sign out */}
+    {/* Sign out */}
       <button
         onClick={handleLogout}
         className="w-full flex items-center justify-center gap-2 p-3.5 rounded-2xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors active:scale-[0.98] animate-in fade-in slide-in-from-bottom-3 duration-500 delay-300 font-bold text-sm"

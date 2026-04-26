@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { FloatingActionMenu } from "@/components/FloatingActionMenu";
 import { Avatar } from "@/components/Avatar";
+import { ProfileActionsMenu } from "@/components/ProfileActionsMenu";
 
 function TelemetryCard() {
   const telemetry = useLiveTelemetry();
@@ -336,17 +337,17 @@ export default function DashboardPage() {
       <RescueCompleteDialog responders={resolvedResponders} alertId={resolvedAlertId} open={showFeedback} onClose={() => setShowFeedback(false)} />
 
       {/* Profile card */}
-      <div className="rounded-xl bg-card/80 backdrop-blur-lg border glow-border p-4 flex items-center gap-3">
+      <div className="rounded-2xl bg-transparent border glow-border p-4 flex items-center gap-3.5 transition-all hover:bg-primary/5 group">
         <Avatar 
           url={user.avatar_url} 
           name={user.full_name} 
-          className="w-11 h-11 rounded-full text-lg glow-primary" 
+          className="w-12 h-12 rounded-full text-lg glow-primary transition-transform duration-300 group-hover:scale-110" 
         />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{user.full_name}</p>
-          <p className="text-[10px] text-muted-foreground capitalize">{user.role} • {user.city}</p>
+          <p className="text-base font-bold truncate group-hover:text-primary transition-colors">{user.full_name}</p>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">{user.role} • {user.city}</p>
         </div>
-        <span className={cn("text-[9px] font-semibold px-2 py-1 rounded-full", user.verification_status === "verified" ? "bg-accent/10 text-accent glow-accent" : "bg-warning/10 text-warning")}>
+        <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-full", user.verification_status === "verified" ? "bg-accent/10 text-accent glow-accent" : "bg-warning/10 text-warning")}>
           {user.verification_status === "verified" ? t("verified") : t("pending")}
         </span>
       </div>
@@ -433,10 +434,10 @@ export default function DashboardPage() {
               const accepted = alert.accepted_by || [];
               const hasAccepted = accepted.includes(user.user_id);
               return (
-                <div key={alert.id} className="p-4 rounded-xl bg-card/80 backdrop-blur-lg border border-destructive/20 space-y-3 glow-destructive">
+                <div key={alert.id} className="p-5 rounded-2xl bg-transparent border border-destructive/20 space-y-4 glow-destructive transition-all hover:bg-destructive/5 group">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-destructive/10 text-destructive border border-destructive/20 glow-destructive">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shrink-0 bg-destructive/10 text-destructive border border-destructive/20 glow-destructive group-hover:scale-110 transition-transform duration-300">
                         {alert.profiles?.full_name?.charAt(0) || "?"}
                       </div>
                       <div className="min-w-0">

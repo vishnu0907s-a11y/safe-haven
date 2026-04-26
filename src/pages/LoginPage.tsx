@@ -295,14 +295,14 @@ export default function LoginPage() {
               <button
                 key={role.id}
                 onClick={() => { setSelectedRole(role.id); setStep("login"); }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl glass-card hover:gold-glow transition-all active:scale-[0.98] group"
+                className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-transparent hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all active:scale-[0.98] group"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", role.color)}>
-                  <role.icon className="w-4 h-4" />
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center glow-primary transition-transform duration-300 group-hover:scale-110", role.color)}>
+                  <role.icon className="w-4.5 h-4.5" />
                 </div>
-                <span className="font-bold flex-1 text-left text-sm">{role.label}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                <span className="font-bold flex-1 text-left text-sm group-hover:text-primary transition-colors">{role.label}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all" />
               </button>
             ))}
           </div>
