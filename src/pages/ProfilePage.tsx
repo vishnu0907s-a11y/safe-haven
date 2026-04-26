@@ -52,7 +52,8 @@ export default function ProfilePage() {
     try {
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop();
-        const path = `${supabaseUser.id}/avatar.${ext}`;
+        const timestamp = Date.now();
+        const path = `${supabaseUser.id}/avatar_${timestamp}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("documents").upload(path, avatarFile, { upsert: true });
         if (uploadError) {
           console.error("Avatar upload error:", uploadError);

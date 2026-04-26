@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,10 @@ interface AvatarProps {
 
 export function Avatar({ url, name, className }: AvatarProps) {
   const [error, setError] = useState(false);
+  
+  useEffect(() => {
+    setError(false);
+  }, [url]);
   
   const getFullUrl = (avatarUrl: string) => {
     if (avatarUrl.startsWith("http")) return avatarUrl;

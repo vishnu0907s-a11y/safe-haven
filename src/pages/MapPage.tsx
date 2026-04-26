@@ -351,7 +351,7 @@ export default function MapPage() {
       if (error) throw error;
 
       if (data) {
-        let stations: PoliceStation[] = data.map((s) => ({
+        const stations: PoliceStation[] = data.map((s) => ({
           id: s.id,
           name: s.name,
           lat: s.latitude,
@@ -400,6 +400,28 @@ export default function MapPage() {
   const signalLabel = telemetry.signalStatus === "connected" ? "CONNECTED" : telemetry.signalStatus === "weak" ? "WEAK" : "SIGNAL LOST";
   const signalColor = telemetry.signalStatus === "connected" ? "text-emerald-400" : telemetry.signalStatus === "weak" ? "text-primary" : "text-destructive";
 
+  let targetEta = "";
+  let targetDistText = "";
+  
+  if (trackingAlertId && myPos) {
+    const alert = alerts.find(a => a.id === trackingAlertId);
+    if (alert) {
+      const dist = getDistanceKm(myPos[0], myPos[1], alert.latitude, alert.longitude);
+      targetDistText = dist < 1 ? `${(dist * 1000).toFixed(0)}m` : `${dist.toFixed(1)} km`;
+      targetEta = getEta(dist);
+    }
+  } else if (user?.role === "women" && respondersLoc.length > 0 && myPos) {
+    let minDist = Infinity;
+    respondersLoc.forEach(r => {
+      const d = getDistanceKm(myPos[0], myPos[1], r.lat, r.lng);
+      if (d < minDist) minDist = d;
+    });
+    if (minDist !== Infinity) {
+      targetDistText = minDist < 1 ? `${(minDist * 1000).toFixed(0)}m` : `${minDist.toFixed(1)} km`;
+      targetEta = getEta(minDist);
+    }
+  }
+
   return (
     <div className="absolute inset-0">
       <div ref={mapContainerRef} className="absolute inset-0 z-0" />
@@ -414,10 +436,19 @@ export default function MapPage() {
           <Gauge className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-bold text-foreground">{telemetry.speed} <span className="text-[9px] text-muted-foreground">KM/H</span></span>
         </div>
-        {trackingAlertId && (
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[9px] font-bold text-primary">TRACKING</span>
+        {(trackingAlertId || (user?.role === "women" && respondersLoc.length > 0)) && (
+          <div className="flex flex-col items-end gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-[9px] font-bold text-primary">
+                {user?.role === "women" ? "RESCUE ON WAY" : "TRACKING TARGET"}
+              </span>
+            </div>
+            {targetEta && (
+              <span className="text-[10px] font-black text-foreground">
+                {targetEta} <span className="text-muted-foreground font-semibold text-[9px]">({targetDistText})</span>
+              </span>
+            )}
           </div>
         )}
       </div>

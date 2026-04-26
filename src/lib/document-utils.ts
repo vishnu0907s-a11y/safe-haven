@@ -163,11 +163,29 @@ export const validateDocument = async (
     // 2. Pre-process Image (Upscale + Sharpen)
     const { dataUrl } = await preprocessImage(file);
 
-    // 3. Perform OCR
-    const worker = await createWorker('eng');
-    const result = await worker.recognize(dataUrl);
-    const { text, confidence } = result.data;
-    await worker.terminate();
+    // 3. Perform OCR with a timeout (10 seconds max)
+    const ocrPromise = async () => {
+      const worker = await createWorker('eng');
+      const result = await worker.recognize(dataUrl);
+      await worker.terminate();
+      return result;
+    };
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('OCR Timeout')), 10000);
+    });
+
+    let text = "";
+    let confidence = 0;
+
+    try {
+      const result = await Promise.race([ocrPromise(), timeoutPromise]) as any;
+      text = result.data.text;
+      confidence = result.data.confidence;
+    } catch (err) {
+      console.warn("OCR skipped or timed out, proceeding without it:", err);
+      // Fallback: proceed without OCR text, status will be pending
+    }
 
     const upperText = text.toUpperCase();
     const digitsOnly = text.replace(/[^0-9]/g, '');

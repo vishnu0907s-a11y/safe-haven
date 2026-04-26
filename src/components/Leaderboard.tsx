@@ -1,7 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Medal, Award, Clock } from "lucide-react";
-import { useI18n } from "@/lib/i18n-context";
+
+interface LeaderboardProps {
+  headerAction?: ReactNode;
+}
 
 interface LeaderboardEntry {
   responder_id: string;
@@ -9,40 +12,125 @@ interface LeaderboardEntry {
   role: string;
   avatar_url?: string;
   totalRescues: number;
+  points: number;
+  avgRating: number;
   avgResponseTime: number; // in minutes
 }
 
-export function Leaderboard() {
-  const { t } = useI18n();
+export function Leaderboard({ headerAction }: LeaderboardProps = {}) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState<"weekly" | "monthly" | "all-time">("all-time");
   useEffect(() => {
     async function fetchLeaderboard() {
       setLoading(true);
-      const { data, error } = await (supabase.rpc as any)("get_leaderboard_stats", {
-        time_filter: timeFilter,
-      });
+      try {
+        const query = supabase.from("rescue_records").select("*");
 
-      if (error || !data) {
-        console.error("Leaderboard fetch error:", error);
-        setEntries([]);
-      } else {
-        const mappedEntries: LeaderboardEntry[] = data.map((d: any) => ({
-          responder_id: d.responder_id,
-          full_name: d.full_name || "Unknown Rescuer",
-          role: d.role || "responder",
-          avatar_url: d.avatar_url,
-          totalRescues: Number(d.total_rescues),
-          avgResponseTime: Number(d.avg_response_time_ms) / (1000 * 60), // Convert ms to minutes
-        }));
+        const { data: records, error: recordsError } = await query;
+
+        if (recordsError || !records) {
+          console.error("Leaderboard fetch error:", recordsError);
+          setEntries([]);
+          setLoading(false);
+          return;
+        }
+
+        const responderIds = [...new Set(records.map(r => r.responder_id))];
+        const alertIds = [...new Set(records.map(r => r.alert_id))];
+        
+        if (responderIds.length === 0) {
+          setEntries([]);
+          setLoading(false);
+          return;
+        }
+
+        const [profilesRes, rolesRes, alertsRes] = await Promise.all([
+          supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", responderIds),
+          supabase.from("user_roles").select("user_id, role").in("user_id", responderIds),
+          supabase.from("emergency_alerts").select("id, created_at").in("id", alertIds)
+        ]);
+
+        const profiles = profilesRes.data || [];
+        const roles = rolesRes.data || [];
+        const alerts = alertsRes.data || [];
+
+        const statsMap = new Map<string, {
+          responder_id: string;
+          totalRescues: number;
+          totalRating: number;
+          ratingCount: number;
+          totalResponseTime: number;
+          points: number;
+        }>();
+        
+        interface RescueRecordRow {
+          responder_id: string;
+          rating?: number;
+          points_awarded?: number;
+          alert_id: string;
+          created_at: string;
+        }
+
+        records.forEach((r: RescueRecordRow) => {
+          if (!statsMap.has(r.responder_id)) {
+            statsMap.set(r.responder_id, {
+              responder_id: r.responder_id,
+              totalRescues: 0,
+              totalRating: 0,
+              ratingCount: 0,
+              totalResponseTime: 0,
+              points: 0
+            });
+          }
+          
+          const stat = statsMap.get(r.responder_id);
+          if (!stat) return;
+          
+          stat.totalRescues += 1;
+          
+          const rating = r.rating || 5; 
+          stat.totalRating += rating;
+          stat.ratingCount += 1;
+          
+          stat.points += (r.points_awarded || 10) + (rating * 2);
+          
+          const alert = alerts.find(a => a.id === r.alert_id);
+          if (alert?.created_at && r.created_at) {
+            const alertTime = new Date(alert.created_at).getTime();
+            const rescueTime = new Date(r.created_at).getTime();
+            stat.totalResponseTime += Math.max(0, rescueTime - alertTime);
+          }
+        });
+
+        const mappedEntries: LeaderboardEntry[] = Array.from(statsMap.values()).map((stat) => {
+          const profile = profiles.find((p: { user_id: string }) => p.user_id === stat.responder_id);
+          const roleData = roles.find((ro: { user_id: string }) => ro.user_id === stat.responder_id);
+          
+          return {
+            responder_id: stat.responder_id,
+            full_name: profile?.full_name || "Unknown Rescuer",
+            role: roleData?.role || "responder",
+            avatar_url: profile?.avatar_url,
+            totalRescues: stat.totalRescues,
+            points: stat.points,
+            avgRating: stat.ratingCount > 0 ? stat.totalRating / stat.ratingCount : 0,
+            avgResponseTime: stat.totalRescues > 0 ? (stat.totalResponseTime / stat.totalRescues) / (1000 * 60) : 0,
+          };
+        });
+
+        mappedEntries.sort((a, b) => b.points - a.points || b.totalRescues - a.totalRescues);
+        
         setEntries(mappedEntries);
+      } catch (err) {
+        console.error("Leaderboard processing error:", err);
+        setEntries([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchLeaderboard();
-  }, [timeFilter]);
+  }, []);
 
   if (loading) {
     return (
@@ -66,22 +154,11 @@ export function Leaderboard() {
             Rescuer Leaderboard
           </h3>
         </div>
-        
-        <div className="flex bg-secondary/50 p-1 rounded-lg">
-          {(["weekly", "monthly", "all-time"] as const).map(filter => (
-            <button
-              key={filter}
-              onClick={() => setTimeFilter(filter)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md capitalize transition-all duration-300 ${
-                timeFilter === filter 
-                  ? "bg-primary text-primary-foreground shadow-sm scale-105" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
-              }`}
-            >
-              {filter.replace("-", " ")}
-            </button>
-          ))}
-        </div>
+        {headerAction && (
+          <div className="flex-shrink-0">
+            {headerAction}
+          </div>
+        )}
       </div>
       
       {entries.length === 0 ? (
@@ -127,13 +204,21 @@ export function Leaderboard() {
               </div>
               
               <div className="text-right flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded text-primary">
+                <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded text-primary">
                   <Award className="w-3.5 h-3.5" />
-                  <span className="text-sm font-bold">{entry.totalRescues}</span>
+                  <span className="text-sm font-black">{entry.points} pts</span>
                 </div>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span className="text-[10px] font-medium">{entry.avgResponseTime.toFixed(1)}m avg</span>
+                <div className="flex items-center gap-2 text-muted-foreground text-[10px] font-medium mt-1">
+                  <span className="flex items-center gap-0.5 text-amber-500">
+                    ★ {entry.avgRating.toFixed(1)}
+                  </span>
+                  <span>•</span>
+                  <span>{entry.totalRescues} rescues</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-0.5">
+                    <Clock className="w-3 h-3" />
+                    {entry.avgResponseTime.toFixed(1)}m avg
+                  </span>
                 </div>
               </div>
             </div>

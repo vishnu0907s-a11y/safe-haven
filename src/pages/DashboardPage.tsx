@@ -238,9 +238,6 @@ export default function DashboardPage() {
   const sosStartRef = useRef<number>(0);
   const sosAnimRef = useRef<number>(0);
 
-  // The user is guaranteed to be available here due to ProtectedRoute logic
-  if (!user) return null;
-
   const triggerSOS = useCallback(async () => {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     
@@ -331,6 +328,8 @@ export default function DashboardPage() {
     // Show feedback dialog
     setShowFeedback(true);
   };
+
+  if (!user) return null;
 
   return (
     <div className="px-4 space-y-4">

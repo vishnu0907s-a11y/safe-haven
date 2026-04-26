@@ -58,8 +58,32 @@ export function useSendEmergencyAlert() {
       )
       .subscribe();
 
+    // Fallback polling (every 3 seconds) for robust delivery even if WebSockets fail
+    const pollInterval = setInterval(() => {
+      supabase
+        .from("emergency_alerts")
+        .select("*")
+        .eq("user_id", supabaseUser.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .then(({ data }) => {
+          setActiveAlert((prev) => {
+            const newAlert = data && data.length > 0 ? data[0] : null;
+            if (!prev && !newAlert) return prev;
+            if (prev && !newAlert) return null;
+            if (!prev && newAlert) return newAlert;
+            if (prev && newAlert && (prev.id !== newAlert.id || prev.status !== newAlert.status || (prev.accepted_by?.length || 0) !== (newAlert.accepted_by?.length || 0))) {
+              return newAlert;
+            }
+            return prev;
+          });
+        });
+    }, 3000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [supabaseUser]);
 
@@ -97,11 +121,11 @@ export function useSendEmergencyAlert() {
         return;
       }
       
-      setActiveAlert(data as any);
+      setActiveAlert(data as EmergencyAlert);
       toast.success("Emergency alert sent! Help is on the way.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("SOS Trigger Error:", err);
-      toast.error(err?.message || "Failed to send alert");
+      toast.error(err instanceof Error ? err.message : "Failed to send alert");
     } finally {
       setSending(false);
     }
@@ -150,9 +174,19 @@ export function useRealtimeAlerts() {
           ...a,
           profiles: profiles?.find(p => p.user_id === a.user_id) || null
         }));
-        setAlerts(enriched as any);
+        setAlerts((prev) => {
+          // Check if anything actually changed to prevent UI flicker
+          const isDifferent = prev.length !== enriched.length || prev.some((p, i) => {
+            const e = enriched[i];
+            if (p.id !== e.id) return true;
+            if (p.status !== e.status) return true;
+            if ((p.accepted_by?.length || 0) !== (e.accepted_by?.length || 0)) return true;
+            return false;
+          });
+          return isDifferent ? (enriched as EmergencyAlert[]) : prev;
+        });
       } else {
-        setAlerts([]);
+        setAlerts((prev) => prev.length === 0 ? prev : []);
       }
     } catch (err) {
       console.error("Error fetching alerts:", err);
@@ -187,7 +221,7 @@ export function useRealtimeAlerts() {
             const enrichedAlert = { ...newAlert, profiles: profile || { full_name: "Unknown", phone: null } };
             setAlerts((prev) => {
               if (prev.find(a => a.id === enrichedAlert.id)) return prev;
-              return [enrichedAlert as any, ...prev];
+              return [enrichedAlert as EmergencyAlert, ...prev];
             });
             toast.warning(`🚨 New alert from ${profile?.full_name || "someone"}!`, { duration: 8000 });
           } else if (payload.eventType === "UPDATE") {
@@ -207,8 +241,14 @@ export function useRealtimeAlerts() {
       )
       .subscribe();
 
+    // Fallback polling (every 4 seconds) for robust delivery and bypassing missing Realtime configs
+    const pollInterval = setInterval(() => {
+      fetchAlerts();
+    }, 4000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [isResponder, isOnDuty, fetchAlerts]);
 
