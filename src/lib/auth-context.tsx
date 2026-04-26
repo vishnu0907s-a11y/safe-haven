@@ -46,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Fetching profile and roles for:", authUser.id);
       
-      // Use individual awaits to catch specific errors and avoid Promise.all hang
       const { data: profile, error: pErr } = await supabase.from("profiles").select("*").eq("user_id", authUser.id).maybeSingle();
       if (pErr) console.error("Profile fetch error:", pErr);
       
@@ -55,30 +54,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log("Profile and role data fetched:", { profile, roleData });
 
-      if (profile && roleData) {
-        setUser({
-          ...profile,
-          role: roleData.role,
-          email: authUser.email!,
-        });
-      } else {
-        console.warn("Profile or role missing for user:", authUser.id);
-        // Set a basic user object even if profile is missing to avoid hangs
-        // Use user_metadata as fallback since the trigger might still be processing
-        setUser({
-          id: authUser.id,
-          user_id: authUser.id,
-          full_name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "User",
-          email: authUser.email!,
-          role: (roleData?.role as any) || (authUser.user_metadata?.role as any) || "women",
-          verification_status: (profile?.verification_status as any) || "pending",
-          created_at: profile?.created_at || new Date().toISOString(),
-          updated_at: profile?.updated_at || new Date().toISOString(),
-        } as any);
-      }
+      // Merge data: Prefer database profile, then auth metadata, then defaults
+      setUser({
+        id: profile?.id || authUser.id,
+        user_id: authUser.id,
+        full_name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "User",
+        email: authUser.email!,
+        phone: profile?.phone || authUser.user_metadata?.phone || null,
+        city: profile?.city || authUser.user_metadata?.city || null,
+        role: (roleData?.role as any) || (authUser.user_metadata?.role as any) || "women",
+        verification_status: (profile?.verification_status as any) || "pending",
+        avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url || null,
+        aadhaar_url: profile?.aadhaar_url || authUser.user_metadata?.aadhaar_url || null,
+        driving_license_url: profile?.driving_license_url || authUser.user_metadata?.driving_license_url || null,
+        vehicle_number: profile?.vehicle_number || authUser.user_metadata?.vehicle_number || null,
+        station_name: profile?.station_name || authUser.user_metadata?.station_name || null,
+        police_id: profile?.police_id || authUser.user_metadata?.police_id || null,
+        address: profile?.address || authUser.user_metadata?.address || null,
+        date_of_birth: profile?.date_of_birth || authUser.user_metadata?.date_of_birth || null,
+        created_at: profile?.created_at || new Date().toISOString(),
+        updated_at: profile?.updated_at || new Date().toISOString(),
+      } as UserProfile);
+
     } catch (err) {
       console.error("fetchProfile error:", err);
-      // Fallback to avoid infinite loading screen
+      // Minimal fallback to avoid infinite loading screen
       setUser({
         id: authUser.id,
         user_id: authUser.id,
@@ -86,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: authUser.email!,
         role: (authUser.user_metadata?.role as any) || "women",
         verification_status: "pending",
+        phone: authUser.user_metadata?.phone || null,
+        city: authUser.user_metadata?.city || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       } as any);

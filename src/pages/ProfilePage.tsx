@@ -46,25 +46,46 @@ export default function ProfilePage() {
       city: editCity.trim() || null,
     };
 
-    if (avatarFile) {
-      const ext = avatarFile.name.split(".").pop();
-      const path = `${supabaseUser.id}/avatar.${ext}`;
-      await supabase.storage.from("documents").upload(path, avatarFile, { upsert: true });
-      updates.avatar_url = path;
-    }
+    try {
+      if (avatarFile) {
+        const ext = avatarFile.name.split(".").pop();
+        const path = `${supabaseUser.id}/avatar.${ext}`;
+        await supabase.storage.from("documents").upload(path, avatarFile, { upsert: true });
+        updates.avatar_url = path;
+      }
 
-    const { error } = await supabase.from("profiles").update(updates).eq("user_id", supabaseUser.id);
-    
-    // REMOVED: Don't sync full_name/phone/city to role-specific tables as they don't have these columns.
+      // 1. Update database profile
+      const { error, count } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("user_id", supabaseUser.id)
+        .select();
 
-    setSaving(false);
-    if (error) {
-      console.error("Profile update error:", error);
-      toast.error(`Update failed: ${error.message || "Unknown database error"}`);
-    } else {
+      if (error) throw error;
+      
+      console.log("Database profile updated. Rows affected:", count);
+
+      // 2. Sync to Auth Metadata for session consistency
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { 
+          full_name: editName.trim(),
+          phone: editPhone.trim() || null,
+          city: editCity.trim() || null
+        }
+      });
+
+      if (authError) console.warn("Auth metadata sync failed:", authError);
+
       toast.success(t("profileUpdated"));
+      
+      // 3. Refresh local state
       await refreshProfile();
       setEditing(false);
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      toast.error(`Update failed: ${error.message || "Unknown database error"}`);
+    } finally {
+      setSaving(false);
     }
   };
 
