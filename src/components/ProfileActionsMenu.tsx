@@ -32,7 +32,10 @@ export function ProfileActionsMenu() {
           <Menu className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[300px] sm:w-[400px] glass-card border-l border-primary/20 p-0">
+      <SheetContent 
+        side="right" 
+        className="w-[280px] sm:w-[320px] glass-card border border-primary/20 p-0 h-fit top-4 right-4 bottom-auto rounded-3xl shadow-2xl overflow-hidden"
+      >
         <SheetHeader className="p-6 border-b border-border/50">
           <SheetTitle className="text-xl font-black flex items-center gap-2">
             <Menu className="w-5 h-5 text-primary" />
