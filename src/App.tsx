@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { I18nProvider } from "@/lib/i18n-context";
+import { SettingsProvider } from "@/lib/settings-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import WelcomePage from "@/pages/WelcomePage";
 import LoginPage from "@/pages/LoginPage";
@@ -22,6 +23,7 @@ import PoliceStationsPage from "@/pages/PoliceStationsPage";
 import RecordPage from "@/pages/RecordPage";
 import NotFound from "@/pages/NotFound";
 import ComplaintPage from "@/pages/ComplaintPage";
+import HowToUsePage from "@/pages/HowToUsePage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, user } = useAuth();
@@ -88,6 +90,7 @@ function AppRoutes() {
         <Route path="/record" element={<RecordPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/complaint" element={<ComplaintPage />} />
+        <Route path="/how-to-use" element={<HowToUsePage />} />
       </Route>
       <Route path="/super-admin-login" element={<SuperAdminLoginPage />} />
       <Route path="/super-admin-dashboard" element={<SuperAdminDashboard />} />
@@ -99,7 +102,8 @@ function AppRoutes() {
 const App = () => (
   <ThemeProvider>
     <I18nProvider>
-      <AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -108,6 +112,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
+      </SettingsProvider>
     </I18nProvider>
   </ThemeProvider>
 );

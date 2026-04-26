@@ -28,10 +28,10 @@ const translations = {
 
     // Auth
     chooseRole: "Choose your role to continue",
-    womenUser: "Women User",
+    women: "Women User",
     driver: "Driver",
     police: "Police",
-    publicProtector: "Public Protector",
+    protector: "Public Protector",
     admin: "Admin",
     signIn: "Sign In",
     createAccount: "Create Account",
@@ -200,6 +200,16 @@ const translations = {
     profileUpdated: "Profile updated successfully",
     updateFailed: "Failed to update profile",
 
+    // Verification Dialog
+    approved: "APPROVED",
+    pendingReview: "PENDING REVIEW",
+    verificationCongratulations: "Congratulations! Your profile has been officially verified by the ResQHer administration.",
+    verificationReviewMessage: "Your documents are currently being reviewed by our administration team. This usually takes 24-48 hours.",
+    verificationDetails: "Verification Details",
+    authorizedRole: "Authorized Role",
+    registeredName: "Registered Name",
+    registeredCity: "Registered City",
+
     // Admin
     administrator: "Administrator",
     totalUsers: "Total Users",
@@ -271,6 +281,29 @@ const translations = {
     language: "Language",
     english: "ENG",
     tamil: "தமிழ்",
+
+    // Portal Titles
+    womenPortal: "WOMEN PORTAL",
+    policePortal: "POLICE PORTAL",
+    driverPortal: "DRIVER PORTAL",
+    protectorPortal: "PROTECTOR PORTAL",
+    adminPortal: "ADMIN PORTAL",
+
+    // Dashboard Items
+    raiseComplaint: "Raise Complaint",
+    chennai: "Chennai",
+
+    // Menu & Settings
+    menu: "Menu",
+    settings: "Settings",
+    howToUse: "How to use app",
+    rateApp: "Rate app",
+    contactSupport: "Contact and Support",
+    backToMenu: "Back to menu",
+    locationAllow: "Location Allow",
+    alwaysTrack: "Always track location",
+    shakeForSos: "Shake for SOS",
+    shakeToActivate: "Shake to activate SOS",
   },
   ta: {
     // Common
@@ -297,10 +330,10 @@ const translations = {
 
     // Auth
     chooseRole: "தொடர உங்கள் பாத்திரத்தை தேர்வு செய்யவும்",
-    womenUser: "பெண் பயனர்",
+    women: "பெண் பயனர்",
     driver: "ஓட்டுநர்",
     police: "காவல்துறை",
-    publicProtector: "பொது பாதுகாவலர்",
+    protector: "பொது பாதுகாவலர்",
     admin: "நிர்வாகி",
     signIn: "உள்நுழை",
     createAccount: "கணக்கை உருவாக்கு",
@@ -469,6 +502,16 @@ const translations = {
     profileUpdated: "சுயவிவரம் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
     updateFailed: "சுயவிவரத்தை புதுப்பிக்க முடியவில்லை",
 
+    // Verification Dialog
+    approved: "ஒப்புதல் அளிக்கப்பட்டது",
+    pendingReview: "ஆய்வில் உள்ளது",
+    verificationCongratulations: "வாழ்த்துகள்! உங்கள் சுயவிவரம் ResQHer நிர்வாகத்தால் அதிகாரப்பூர்வமாக சரிபார்க்கப்பட்டது.",
+    verificationReviewMessage: "உங்கள் ஆவணங்கள் தற்போது எங்கள் நிர்வாகக் குழுவால் மதிப்பாய்வு செய்யப்படுகின்றன. இதற்கு பொதுவாக 24-48 மணிநேரம் ஆகும்.",
+    verificationDetails: "சரிபார்ப்பு விவரங்கள்",
+    authorizedRole: "அங்கீகரிக்கப்பட்ட பாத்திரம்",
+    registeredName: "பதிவு செய்யப்பட்ட பெயர்",
+    registeredCity: "பதிவு செய்யப்பட்ட நகரம்",
+
     // Admin
     administrator: "நிர்வாகி",
     totalUsers: "மொத்த பயனர்கள்",
@@ -540,6 +583,29 @@ const translations = {
     language: "மொழி",
     english: "ENG",
     tamil: "தமிழ்",
+
+    // Portal Titles
+    womenPortal: "பெண் தளம்",
+    policePortal: "காவல்துறை தளம்",
+    driverPortal: "ஓட்டுநர் தளம்",
+    protectorPortal: "பொது பாதுகாவலர் தளம்",
+    adminPortal: "நிர்வாகி தளம்",
+
+    // Dashboard Items
+    raiseComplaint: "புகார் அளிக்கவும்",
+    chennai: "சென்னை",
+
+    // Menu & Settings
+    menu: "மெனு",
+    settings: "அமைப்புகள்",
+    howToUse: "செயலியை பயன்படுத்துவது எப்படி",
+    rateApp: "செயலியை மதிப்பிடுங்கள்",
+    contactSupport: "தொடர்பு மற்றும் ஆதரவு",
+    backToMenu: "மெனுவுக்கு திரும்பு",
+    locationAllow: "இருப்பிட அனுமதி",
+    alwaysTrack: "எப்போதும் இருப்பிடத்தை கண்காணிக்கவும்",
+    shakeForSos: "SOS க்காக குலுக்கவும்",
+    shakeToActivate: "SOS ஐ செயல்படுத்த குலுக்கவும்",
   },
 } as const;
 

@@ -38,10 +38,10 @@ export default function LoginPage() {
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
   const roles: { id: UserRole; label: string; icon: React.ElementType; color: string }[] = [
-    { id: "women", label: t("womenUser"), icon: User, color: "bg-pink-500/10 text-pink-400 border border-pink-500/20" },
+    { id: "women", label: t("women"), icon: User, color: "bg-pink-500/10 text-pink-400 border border-pink-500/20" },
     { id: "driver", label: t("driver"), icon: Car, color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
     { id: "police", label: t("police"), icon: ShieldCheck, color: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
-    { id: "protector", label: t("publicProtector"), icon: Users, color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+    { id: "protector", label: t("protector"), icon: Users, color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
     { id: "admin", label: t("admin"), icon: Lock, color: "bg-slate-500/10 text-slate-400 border border-slate-500/20" },
   ];
 

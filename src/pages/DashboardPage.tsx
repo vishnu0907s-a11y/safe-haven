@@ -345,7 +345,9 @@ export default function DashboardPage() {
         />
         <div className="flex-1 min-w-0">
           <p className="text-base font-bold truncate group-hover:text-primary transition-colors">{user.full_name}</p>
-          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">{user.role} • {user.city}</p>
+          <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">
+            {t(user.role as any)} • {user.city === "Chennai" ? t("chennai") : user.city}
+          </p>
         </div>
         <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-full", user.verification_status === "verified" ? "bg-accent/10 text-accent glow-accent" : "bg-warning/10 text-warning")}>
           {user.verification_status === "verified" ? t("verified") : t("pending")}

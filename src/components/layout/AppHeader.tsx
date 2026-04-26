@@ -24,7 +24,9 @@ export function AppHeader() {
             <span className="text-[#a855f7]">QHer</span>
           </h1>
           {user && (
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-0.5 truncate">{user.role} Portal</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-0.5 truncate">
+              {t(`${user.role}Portal` as any)}
+            </p>
           )}
         </div>
       </div>

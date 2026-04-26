@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useAttendance } from "@/hooks/use-attendance";
+import { useSettings } from "@/lib/settings-context";
 
 const BROADCAST_INTERVAL_MS = 4000; // Push location every 4 seconds
 
@@ -13,6 +14,7 @@ const BROADCAST_INTERVAL_MS = 4000; // Push location every 4 seconds
 export function useLiveLocationBroadcast() {
   const { supabaseUser, user } = useAuth();
   const { activeShift } = useAttendance();
+  const { locationAllowed } = useSettings();
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; heading: number | null; speed: number | null; accuracy: number | null } | null>(null);
@@ -47,7 +49,7 @@ export function useLiveLocationBroadcast() {
   };
 
   useEffect(() => {
-    if (!isResponder || !isOnDuty || !supabaseUser) return;
+    if (!isResponder || !isOnDuty || !supabaseUser || !locationAllowed) return;
 
     // Watch GPS position
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -72,5 +74,5 @@ export function useLiveLocationBroadcast() {
       if (intervalRef.current) clearInterval(intervalRef.current);
       removeLocation(); // Clean up on unmount / check-out
     };
-  }, [isResponder, isOnDuty, supabaseUser]);
+  }, [isResponder, isOnDuty, supabaseUser, locationAllowed]);
 }

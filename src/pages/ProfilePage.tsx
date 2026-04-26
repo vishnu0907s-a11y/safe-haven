@@ -176,30 +176,30 @@ export default function ProfilePage() {
                   "text-2xl font-black tracking-tight",
                   user.verification_status === "verified" ? "text-accent" : "text-warning"
                 )}>
-                  {user.verification_status === "verified" ? "APPROVED" : "PENDING REVIEW"}
+                  {user.verification_status === "verified" ? t("approved") : t("pendingReview")}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed px-2">
                   {user.verification_status === "verified" 
-                    ? "Congratulations! Your profile has been officially verified by the ResQHer administration." 
-                    : "Your documents are currently being reviewed by our administration team. This usually takes 24-48 hours."}
+                    ? t("verificationCongratulations") 
+                    : t("verificationReviewMessage")}
                 </p>
               </div>
             </div>
 
             <div className="p-5 rounded-2xl bg-secondary/30 border border-border/20 text-left space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Verification Details</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{t("verificationDetails")}</p>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Authorized Role</span>
-                  <span className="text-xs font-black uppercase tracking-wider text-primary">{user.role}</span>
+                  <span className="text-xs text-muted-foreground">{t("authorizedRole")}</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-primary">{t(user.role as any)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Registered Name</span>
+                  <span className="text-xs text-muted-foreground">{t("registeredName")}</span>
                   <span className="text-xs font-bold">{user.full_name}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Assigned City</span>
-                  <span className="text-xs font-bold">{user.city || "UNASSIGNED"}</span>
+                  <span className="text-xs text-muted-foreground">{t("registeredCity")}</span>
+                  <span className="text-xs font-bold">{user.city === "Chennai" ? t("chennai") : (user.city || "UNASSIGNED")}</span>
                 </div>
               </div>
             </div>
