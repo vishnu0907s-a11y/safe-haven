@@ -50,8 +50,16 @@ export default function ProfilePage() {
       if (avatarFile) {
         const ext = avatarFile.name.split(".").pop();
         const path = `${supabaseUser.id}/avatar.${ext}`;
-        await supabase.storage.from("documents").upload(path, avatarFile, { upsert: true });
-        updates.avatar_url = path;
+        const { error: uploadError } = await supabase.storage.from("documents").upload(path, avatarFile, { upsert: true });
+        if (uploadError) {
+          console.error("Avatar upload error:", uploadError);
+          toast.error(`Avatar upload failed: ${uploadError.message}`);
+        } else {
+          // Store the full public URL so it can be used directly in <img> tags
+          const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+          updates.avatar_url = urlData.publicUrl;
+          console.log("Avatar uploaded successfully. Public URL:", urlData.publicUrl);
+        }
       }
 
       // 1. Update database profile
@@ -66,12 +74,15 @@ export default function ProfilePage() {
       console.log("Database profile updated. Rows affected:", count);
 
       // 2. Sync to Auth Metadata for session consistency
+      const metadataUpdate: Record<string, string | null> = { 
+        full_name: editName.trim(),
+        phone: editPhone.trim() || null,
+        city: editCity.trim() || null,
+      };
+      if (updates.avatar_url) metadataUpdate.avatar_url = updates.avatar_url;
+
       const { error: authError } = await supabase.auth.updateUser({
-        data: { 
-          full_name: editName.trim(),
-          phone: editPhone.trim() || null,
-          city: editCity.trim() || null
-        }
+        data: metadataUpdate,
       });
 
       if (authError) console.warn("Auth metadata sync failed:", authError);
@@ -111,7 +122,7 @@ export default function ProfilePage() {
                   {avatarFile ? (
                     <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" alt="" />
                   ) : user.avatar_url ? (
-                    <img src={supabase.storage.from("documents").getPublicUrl(user.avatar_url).data.publicUrl} className="w-full h-full object-cover" alt="" />
+                    <img src={user.avatar_url.startsWith("http") ? user.avatar_url : supabase.storage.from("documents").getPublicUrl(user.avatar_url).data.publicUrl} className="w-full h-full object-cover" alt="" />
                   ) : (
                     user.full_name.charAt(0)
                   )}

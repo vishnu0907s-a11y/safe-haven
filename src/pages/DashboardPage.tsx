@@ -336,7 +336,13 @@ export default function DashboardPage() {
 
       {/* Profile card */}
       <div className="rounded-xl bg-card/80 backdrop-blur-lg border glow-border p-4 flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg glow-primary">{user.full_name.charAt(0)}</div>
+        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg glow-primary overflow-hidden">
+          {user.avatar_url ? (
+            <img src={user.avatar_url.startsWith("http") ? user.avatar_url : ""} className="w-full h-full object-cover" alt="" />
+          ) : (
+            user.full_name.charAt(0)
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{user.full_name}</p>
           <p className="text-[10px] text-muted-foreground capitalize">{user.role} • {user.city}</p>
