@@ -34,7 +34,7 @@ export function AppHeader() {
       <div className="flex items-center gap-1 sm:gap-2">
         <LanguageToggle compact />
         
-        {user?.role !== "admin" && <NotificationsPopover />}
+        <NotificationsPopover />
         <button
           onClick={toggle}
           className="p-1.5 sm:p-3 rounded-full hover:bg-primary/10 transition-all active:scale-90 group"
