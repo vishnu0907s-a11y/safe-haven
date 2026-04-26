@@ -8,9 +8,11 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/lib/i18n-context";
+import { useAuth } from "@/lib/auth-context";
 
 export function ProfileActionsMenu() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [locationAllowed, setLocationAllowed] = useState(true);
   const [shakeEnabled, setShakeEnabled] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -99,18 +101,20 @@ export function ProfileActionsMenu() {
                   <Switch checked={locationAllowed} onCheckedChange={setLocationAllowed} />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <ShieldAlert className="w-5 h-5 text-primary" />
+                {user?.role === "women" && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <ShieldAlert className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Shake for SOS</p>
+                        <p className="text-[10px] text-muted-foreground">Shake to activate SOS</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">Shake for SOS</p>
-                      <p className="text-[10px] text-muted-foreground">Shake to activate SOS</p>
-                    </div>
+                    <Switch checked={shakeEnabled} onCheckedChange={setShakeEnabled} />
                   </div>
-                  <Switch checked={shakeEnabled} onCheckedChange={setShakeEnabled} />
-                </div>
+                )}
               </div>
             </div>
           )}
