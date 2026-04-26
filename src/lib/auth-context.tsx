@@ -97,11 +97,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let profileSubscription: any;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state change:", event, session?.user?.id);
+      
+      if (profileSubscription) {
+        supabase.removeChannel(profileSubscription);
+        profileSubscription = null;
+      }
+
       if (session?.user) {
         setSupabaseUser(session.user);
         fetchProfile(session.user);
+
+        // Subscribe to real-time updates for this user's profile
+        profileSubscription = supabase
+          .channel(`profile-updates-${session.user.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "profiles",
+              filter: `user_id=eq.${session.user.id}`,
+            },
+            () => {
+              console.log("Real-time profile update detected, fetching fresh data...");
+              fetchProfile(session.user!);
+            }
+          )
+          .subscribe();
       } else {
         setSupabaseUser(null);
         setUser(null);
@@ -118,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Safety timeout increased and only fires if we're still loading
+    // Safety timeout
     const timer = setTimeout(() => {
       setLoading(prev => {
         if (prev) {
@@ -131,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      if (profileSubscription) supabase.removeChannel(profileSubscription);
       clearTimeout(timer);
     };
   }, [fetchProfile]);

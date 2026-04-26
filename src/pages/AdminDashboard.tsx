@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter, Plus, MessageSquare, Bell } from "lucide-react";
+import { Users, AlertTriangle, CheckCircle2, Clock, Search, Eye, Trash2, Shield, MapPin, Check, X, Video, Download, Filter, Plus, MessageSquare, Bell, Film } from "lucide-react";
 import { AdminMap } from "@/components/AdminMap";
 import { useAuth } from "@/lib/auth-context";
 import { useI18n } from "@/lib/i18n-context";
@@ -34,6 +34,8 @@ interface EvidenceItem {
 interface AlertWithUser {
   id: string; status: string; created_at: string; latitude: number; longitude: number;
   accepted_by: string[] | null; user_id: string; user_name?: string; avatar_url?: string | null;
+  responders?: { id: string; full_name: string }[];
+  resolved_at?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -52,18 +54,20 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const isDashboard = location.pathname === "/admin" || location.pathname === "/admin/";
 
-  const [tab, setTab] = useState<"users" | "alerts" | "evidence" | "map">(() => {
+  const [tab, setTab] = useState<"dashboard" | "users" | "alerts" | "evidence" | "map">(() => {
     if (location.pathname.includes("/admin/users")) return "users";
+    if (location.pathname.includes("/admin/alerts")) return "alerts";
     if (location.pathname.includes("/admin/evidence")) return "evidence";
     if (location.pathname.includes("/admin/map")) return "map";
-    return "alerts";
+    return "dashboard";
   });
 
   useEffect(() => {
     if (location.pathname.includes("/admin/users")) setTab("users");
+    else if (location.pathname.includes("/admin/alerts")) setTab("alerts");
     else if (location.pathname.includes("/admin/evidence")) setTab("evidence");
     else if (location.pathname.includes("/admin/map")) setTab("map");
-    else setTab("alerts");
+    else setTab("dashboard");
   }, [location.pathname]);
 
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
@@ -117,7 +121,6 @@ export default function AdminDashboard() {
   const fetchEvidence = async () => {
     setLoadingEvidence(true);
     try {
-      // 1. Fetch from DB
       const { data: dbEvidence, error } = await supabase
         .from("evidence_videos" as any)
         .select("*")
@@ -130,7 +133,6 @@ export default function AdminDashboard() {
         return;
       }
 
-      // 2. Fetch profiles
       const uids = [...new Set(dbEvidence.map((e: any) => e.user_id))];
       let profilesMap = new Map();
       
@@ -145,7 +147,6 @@ export default function AdminDashboard() {
         }
       }
 
-      // 3. Map to UI format
       const formattedEvidence: EvidenceItem[] = dbEvidence.map((e: any) => ({
         name: e.storage_path.split("/").pop() || "Video",
         created_at: e.created_at,
@@ -162,13 +163,45 @@ export default function AdminDashboard() {
     setLoadingEvidence(false);
   };
 
+
   const fetchAlerts = async () => {
-    const { data } = await supabase.from("emergency_alerts").select("*").order("created_at", { ascending: false }).limit(50);
-    if (data && data.length > 0) {
-      const uids = [...new Set(data.map(a => a.user_id))];
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", uids);
-      setAdminAlerts(data.map(a => ({ ...a, user_name: profiles?.find(p => p.user_id === a.user_id)?.full_name || "Unknown", avatar_url: profiles?.find(p => p.user_id === a.user_id)?.avatar_url || null })));
-    } else setAdminAlerts([]);
+    // 1. Fetch alerts
+    const { data: alerts } = await supabase
+      .from("emergency_alerts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+      
+    if (alerts && alerts.length > 0) {
+      // 2. Fetch victim profiles
+      const vids = [...new Set(alerts.map(a => a.user_id))];
+      const { data: vProfiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", vids);
+      
+      // 3. Fetch responder profiles (from accepted_by)
+      const allResponderIds = [...new Set(alerts.flatMap(a => a.accepted_by || []))];
+      let rProfilesMap = new Map();
+      if (allResponderIds.length > 0) {
+        const { data: rProfiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", allResponderIds);
+        if (rProfiles) {
+          rProfilesMap = new Map(rProfiles.map(p => [p.user_id, p.full_name]));
+        }
+      }
+
+      // 4. Fetch rescue records to get resolved_at
+      const { data: records } = await supabase.from("rescue_records").select("alert_id, created_at").in("alert_id", alerts.map(a => a.id));
+      const recordsMap = new Map(records?.map(r => [r.alert_id, r.created_at]));
+
+      // 5. Combine
+      setAdminAlerts(alerts.map(a => ({
+        ...a,
+        user_name: vProfiles?.find(p => p.user_id === a.user_id)?.full_name || "Unknown",
+        avatar_url: vProfiles?.find(p => p.user_id === a.user_id)?.avatar_url || null,
+        responders: (a.accepted_by || []).map(id => ({ full_name: rProfilesMap.get(id) || "Unknown", id })),
+        resolved_at: recordsMap.get(a.id) || null
+      })));
+    } else {
+      setAdminAlerts([]);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -176,25 +209,31 @@ export default function AdminDashboard() {
     if (error) toast.error(t("deleteFailed"));
     else { toast.success(t("userRemoved")); setUsers((prev) => prev.filter((u) => u.user_id !== userId)); setDeleteConfirm(null); }
   };
-  const handleApproveUser = async (userId: string, role?: string) => {
-    const { error } = await supabase.from("profiles").update({ verification_status: "verified" as any }).eq("user_id", userId);
-    if (error) toast.error(t("approvalFailed"));
-    else { 
-      if (role && role !== 'admin') {
-        await supabase.from(role as any).update({ verification_status: "verified" }).eq("user_id", userId);
-      }
+  const handleApproveUser = async (userId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ verification_status: "verified" as any })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Approval error:", error);
+      toast.error(t("approvalFailed"));
+    } else { 
       toast.success(t("userApproved")); 
       setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "verified" } : u)); 
       fetchStats(); 
     }
   };
-  const handleRejectUser = async (userId: string, role?: string) => {
-    const { error } = await supabase.from("profiles").update({ verification_status: "rejected" as any }).eq("user_id", userId);
-    if (error) toast.error(t("approvalFailed"));
-    else { 
-      if (role && role !== 'admin') {
-        await supabase.from(role as any).update({ verification_status: "rejected" }).eq("user_id", userId);
-      }
+  const handleRejectUser = async (userId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ verification_status: "rejected" as any })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Rejection error:", error);
+      toast.error(t("approvalFailed"));
+    } else { 
       toast.success(t("userRejected")); 
       setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, verification_status: "rejected" } : u)); 
       fetchStats(); 
@@ -232,9 +271,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="px-4 md:px-8 max-w-7xl mx-auto space-y-4 md:space-y-8 pb-4 md:pb-8">
-      {isDashboard && (
+      {tab === "dashboard" && (
         <>
-          {/* Admin header */}
           <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border animate-in fade-in duration-300">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
               {user.full_name.charAt(0)}
@@ -245,20 +283,44 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {(["alerts", "map", "users", "evidence"] as const).map((t_tab) => (
-              <button
-                key={t_tab}
-                onClick={() => navigate(`/admin/${t_tab}`)}
-                className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors",
-                  tab === t_tab ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                )}
-              >
-                {t_tab === "alerts" ? t("alerts") : t_tab === "map" ? "Map" : t_tab === "users" ? t("allUsers") : t("evidence")}
-              </button>
+          {/* Stat Cards - moved into dashboard tab */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in slide-in-from-bottom-4 duration-500 delay-150">
+            {statCards.map((card, i) => (
+              <div key={i} className="p-4 rounded-2xl bg-card border hover:shadow-lg transition-all group active:scale-95">
+                <div className={cn("w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform", card.color)}>
+                  <card.icon className="w-5 h-5" />
+                </div>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{card.label}</p>
+                <p className="text-2xl font-black">{card.value}</p>
+              </div>
             ))}
+          </div>
+
+          {/* On Duty Section - moved into dashboard tab */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-warning" />
+              <p className="text-sm font-bold uppercase tracking-wider text-warning">{t("onDutyRescuers")}</p>
+            </div>
+            {onDutyRescuers.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-card/50 border border-dashed text-center">
+                <p className="text-xs text-muted-foreground">{t("noRescuersOnDuty")}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {onDutyRescuers.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border transition-all hover:border-warning/30">
+                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center text-warning text-xs font-bold">
+                      {r.full_name?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold">{r.full_name}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-tighter">{r.role} • Active</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -275,60 +337,93 @@ export default function AdminDashboard() {
         <div className="space-y-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-              <p className="text-sm font-semibold">{t("emergencyAlerts")} (Within 30 KM)</p>
+              <Clock className="w-4 h-4 text-primary" />
+              <p className="text-sm font-bold uppercase tracking-wider text-primary">Alert History & Status</p>
             </div>
             <div className="flex gap-1.5 mb-2">
               {(["all", "active", "resolved"] as const).map((f) => (
-                <button key={f} onClick={() => setAlertFilter(f)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium", alertFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")}>
+                <button key={f} onClick={() => setAlertFilter(f)} className={cn("px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all", alertFilter === f ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-secondary text-muted-foreground hover:bg-secondary/80")}>
                   {f === "all" ? t("all") : f === "active" ? t("active") : t("resolved")}
                 </button>
               ))}
             </div>
             {filteredAlerts.length === 0 ? (
-              <div className="p-8 rounded-xl bg-card border text-center">
-                <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
+              <div className="p-12 rounded-2xl bg-card border border-dashed text-center">
+                <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-20" />
                 <p className="text-sm text-muted-foreground">{t("noPastAlerts")}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {filteredAlerts.map((alert) => (
-                  <div key={alert.id} className={cn("p-4 rounded-xl border transition-all hover:shadow-md", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", alert.status === "active" ? "bg-destructive/10" : "bg-accent/10")}>
-                      <Avatar 
-                        url={alert.avatar_url} 
-                        name={alert.user_name || "Unknown"} 
-                        className="w-full h-full rounded-full text-sm glow-primary" 
-                      />
-                    </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold truncate">{alert.user_name}</p>
-                          <div className="flex flex-col gap-0.5 mt-0.5">
-                             <div className="flex items-center gap-1">
-                               <MapPin className="w-3 h-3 text-muted-foreground" />
-                               <span className="text-[10px] text-muted-foreground">{alert.distance.toFixed(1)} KM • {alert.eta}</span>
-                             </div>
-                             <span className="text-[9px] text-muted-foreground">{new Date(alert.created_at).toLocaleString()}</span>
+                  <div key={alert.id} className={cn("p-5 rounded-2xl border transition-all hover:shadow-xl group", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-start gap-4 min-w-0">
+                        <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner", alert.status === "active" ? "bg-destructive/10" : "bg-accent/10")}>
+                          <Avatar 
+                            url={alert.avatar_url} 
+                            name={alert.user_name || "Unknown"} 
+                            className="w-full h-full rounded-2xl text-base font-bold shadow-lg" 
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <p className="text-base font-black tracking-tight truncate">{alert.user_name}</p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {alert.distance.toFixed(1)} KM • {alert.eta}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                              <Clock className="w-3.5 h-3.5" />
+                              Alert: {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            {alert.resolved_at && (
+                              <div className="flex items-center gap-1.5 text-xs text-accent font-bold">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Rescued: {new Date(alert.resolved_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                          {alert.status === "active" ? "🔴 Active" : "🟢 Resolved"}
+                      <div className="flex items-center md:flex-col md:items-end gap-3 shrink-0">
+                        <span className={cn("text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm", alert.status === "active" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground")}>
+                          {alert.status === "active" ? "Active" : "Rescued"}
                         </span>
-                        <button 
-                          onClick={() => {
-                            const link = `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`;
-                            window.open(`https://wa.me/?text=${encodeURIComponent('Emergency Location: ' + link)}`, '_blank');
-                          }}
-                          className="px-3 py-1 rounded-lg text-[10px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
-                        >
-                          Share
-                        </button>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              const link = `https://www.google.com/maps?q=${alert.latitude},${alert.longitude}`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent('Emergency Location: ' + link)}`, '_blank');
+                            }}
+                            className="p-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground active:scale-95 transition-all shadow-sm"
+                            title="Share location"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Responders Section */}
+                    <div className="mt-5 pt-4 border-t border-border/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Responders ({alert.responders?.length || 0})</p>
+                      </div>
+                      {alert.responders && alert.responders.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {alert.responders.map((r) => (
+                            <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border shadow-sm text-[10px] font-bold transition-all hover:border-primary/30">
+                              <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[8px] text-primary">
+                                {r.full_name.charAt(0)}
+                              </div>
+                              {r.full_name}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] italic text-muted-foreground">Waiting for responders...</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -337,6 +432,68 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* EVIDENCE TAB */}
+      {tab === "evidence" && (() => {
+        const fe = evidence.filter(item => {
+          const ms = !evidenceSearch || (item.user_name || "").toLowerCase().includes(evidenceSearch.toLowerCase());
+          const d = new Date(item.created_at);
+          const mf = !evidenceDateFrom || d >= new Date(evidenceDateFrom);
+          const mt = !evidenceDateTo || d <= new Date(evidenceDateTo + "T23:59:59");
+          return ms && mf && mt;
+        });
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-4">
+              <Film className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-bold">Evidence Library</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Search by user..." value={evidenceSearch} onChange={(e) => setEvidenceSearch(e.target.value)} className="pl-9 h-9 text-sm" />
+                </div>
+                <div className="flex gap-2">
+                  <Input type="date" value={evidenceDateFrom} onChange={(e) => setEvidenceDateFrom(e.target.value)} className="h-9 text-xs" />
+                  <Input type="date" value={evidenceDateTo} onChange={(e) => setEvidenceDateTo(e.target.value)} className="h-9 text-xs" />
+                  {(evidenceDateFrom || evidenceDateTo || evidenceSearch) && (
+                    <button onClick={() => { setEvidenceSearch(""); setEvidenceDateFrom(""); setEvidenceDateTo(""); }} className="px-3 h-9 rounded-lg bg-secondary text-xs text-muted-foreground">Clear</button>
+                  )}
+                </div>
+              </div>
+
+              {loadingEvidence ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
+              ) : fe.length === 0 ? (
+                <div className="p-12 rounded-2xl bg-card border border-dashed text-center space-y-3">
+                  <Video className="w-8 h-8 text-muted-foreground mx-auto opacity-20" />
+                  <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {fe.map((item, i) => (
+                    <div key={i} className="p-4 rounded-2xl bg-card border space-y-4 transition-all hover:shadow-xl hover:border-primary/20 group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Video className="w-5 h-5" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">{item.user_name || "Unknown"}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium">{new Date(item.created_at).toLocaleString()}</p>
+                        </div>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-xl bg-secondary text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all"><Download className="w-4 h-4" /></a>
+                      </div>
+                      <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-inner">
+                        <video src={item.url} controls className="w-full h-full object-contain" preload="metadata" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* USERS TAB */}
       {tab === "users" && (
@@ -394,8 +551,8 @@ export default function AdminDashboard() {
                       <div className="flex gap-0.5">
                         {u.verification_status === "pending" && (
                           <>
-                            <button onClick={() => handleApproveUser(u.user_id, u.role)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-4 h-4 text-accent" /></button>
-                            <button onClick={() => handleRejectUser(u.user_id, u.role)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-4 h-4 text-destructive" /></button>
+                            <button onClick={() => handleApproveUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-accent/10 active:scale-95"><Check className="w-4 h-4 text-accent" /></button>
+                            <button onClick={() => handleRejectUser(u.user_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 active:scale-95"><X className="w-4 h-4 text-destructive" /></button>
                           </>
                         )}
                         <button onClick={() => setViewingProof(u)} className="p-1.5 rounded-lg hover:bg-secondary active:scale-95"><Eye className="w-4 h-4 text-muted-foreground" /></button>
@@ -412,66 +569,6 @@ export default function AdminDashboard() {
 
 
 
-      {/* EVIDENCE TAB */}
-      {tab === "evidence" && (() => {
-        const fe = evidence.filter(item => {
-          const ms = !evidenceSearch || (item.user_name || "").toLowerCase().includes(evidenceSearch.toLowerCase());
-          const d = new Date(item.created_at);
-          const mf = !evidenceDateFrom || d >= new Date(evidenceDateFrom);
-          const mt = !evidenceDateTo || d <= new Date(evidenceDateTo + "T23:59:59");
-          return ms && mf && mt;
-        });
-        return (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by user..." value={evidenceSearch} onChange={(e) => setEvidenceSearch(e.target.value)} className="pl-9 h-9 text-sm" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground font-medium mb-0.5 block">From</label>
-                  <Input type="date" value={evidenceDateFrom} onChange={(e) => setEvidenceDateFrom(e.target.value)} className="h-8 text-xs" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-[10px] text-muted-foreground font-medium mb-0.5 block">To</label>
-                  <Input type="date" value={evidenceDateTo} onChange={(e) => setEvidenceDateTo(e.target.value)} className="h-8 text-xs" />
-                </div>
-                {(evidenceDateFrom || evidenceDateTo || evidenceSearch) && (
-                  <button onClick={() => { setEvidenceSearch(""); setEvidenceDateFrom(""); setEvidenceDateTo(""); }} className="self-end px-2 h-8 rounded-lg bg-secondary text-[10px] font-medium text-muted-foreground">Clear</button>
-                )}
-              </div>
-              <p className="text-[10px] text-muted-foreground">{fe.length} result(s)</p>
-            </div>
-            {loadingEvidence ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
-            ) : fe.length === 0 ? (
-              <div className="p-8 rounded-xl bg-card border text-center">
-                <Video className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
-                <p className="text-sm text-muted-foreground">{t("noEvidence")}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fe.map((item, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-card border space-y-3 transition-all hover:shadow-md">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center"><Video className="w-5 h-5 text-destructive" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{item.user_name || "Unknown"}</p>
-                        <p className="text-[10px] text-muted-foreground font-medium">{new Date(item.created_at).toLocaleString()}</p>
-                      </div>
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-lg bg-primary/10 text-primary active:scale-95 transition-colors hover:bg-primary/20"><Download className="w-4 h-4" /></a>
-                    </div>
-                    <div className="relative aspect-video bg-black/90 rounded-lg overflow-hidden group">
-                      <video src={item.url} controls className="w-full h-full object-contain" preload="metadata" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       {/* View proof dialog */}
       <Dialog open={!!viewingProof} onOpenChange={() => setViewingProof(null)}>
@@ -488,8 +585,8 @@ export default function AdminDashboard() {
               <p><span className="text-muted-foreground">{t("status")}:</span> <span className="capitalize">{viewingProof.verification_status}</span></p>
               {viewingProof.verification_status === "pending" && (
                 <div className="flex gap-2">
-                  <button onClick={() => { handleApproveUser(viewingProof.user_id, viewingProof.role); setViewingProof({ ...viewingProof, verification_status: "verified" }); }} className="flex-1 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> {t("approve")}</button>
-                  <button onClick={() => { handleRejectUser(viewingProof.user_id, viewingProof.role); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }} className="flex-1 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><X className="w-4 h-4" /> {t("reject")}</button>
+                  <button onClick={() => { handleApproveUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "verified" }); }} className="flex-1 py-2 rounded-xl bg-accent text-accent-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> {t("approve")}</button>
+                  <button onClick={() => { handleRejectUser(viewingProof.user_id); setViewingProof({ ...viewingProof, verification_status: "rejected" }); }} className="flex-1 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-1.5"><X className="w-4 h-4" /> {t("reject")}</button>
                 </div>
               )}
               {(viewingProof.aadhaar_url || viewingProof.driving_license_url) && (
@@ -538,16 +635,6 @@ export default function AdminDashboard() {
               </div>
             </button>
 
-            {/* Evidence */}
-            <button
-              onClick={() => { navigate("/admin/evidence"); setAdminFabOpen(false); }}
-              className="flex items-center gap-3 bg-card/95 backdrop-blur border shadow-xl rounded-full pr-1.5 pl-4 py-1.5 hover:bg-blue-500/10 transition-colors"
-            >
-              <span className="text-sm font-semibold">Evidence</span>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-500">
-                <Video className="w-5 h-5" />
-              </div>
-            </button>
 
             {/* Emergency Alerts */}
             <button
