@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Avatar } from "@/components/Avatar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ interface UserRow {
   id: string; user_id: string; full_name: string; phone: string | null;
   city: string | null; verification_status: string;
   aadhaar_url: string | null; driving_license_url: string | null; role?: string;
+  avatar_url?: string | null;
 }
 interface OnDutyRescuer {
   id: string; user_id: string; checked_in_at: string;
@@ -294,9 +296,13 @@ export default function AdminDashboard() {
                   <div key={alert.id} className={cn("p-4 rounded-xl border transition-all hover:shadow-md", alert.status === "active" ? "bg-destructive/5 border-destructive/20" : "bg-accent/5 border-accent/20")}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0", alert.status === "active" ? "bg-destructive/10 text-destructive" : "bg-accent/10 text-accent")}>
-                          {alert.user_name?.charAt(0) || "?"}
-                        </div>
+                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", alert.status === "active" ? "bg-destructive/10" : "bg-accent/10")}>
+                      <Avatar 
+                        url={alert.avatar_url} 
+                        name={alert.user_name || "Unknown"} 
+                        className="w-full h-full rounded-full text-sm glow-primary" 
+                      />
+                    </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold truncate">{alert.user_name}</p>
                           <div className="flex flex-col gap-0.5 mt-0.5">
@@ -370,7 +376,11 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filtered.map((u) => (
                   <div key={u.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-card border transition-all hover:shadow-md">
-                    <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold">{u.full_name.charAt(0)}</div>
+                    <Avatar 
+                      url={u.avatar_url} 
+                      name={u.full_name} 
+                      className="w-9 h-9 rounded-full text-sm font-bold" 
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate">{u.full_name}</p>
                       <p className="text-[10px] text-muted-foreground font-medium capitalize">{u.role} • {u.city || "N/A"}</p>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Avatar } from "@/components/Avatar";
 
 export default function ProfilePage() {
   const { user, logout, refreshProfile, supabaseUser } = useAuth();
@@ -121,10 +122,8 @@ export default function ProfilePage() {
                 <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-primary font-black text-2xl border-2 border-dashed border-border overflow-hidden glow-primary">
                   {avatarFile ? (
                     <img src={URL.createObjectURL(avatarFile)} className="w-full h-full object-cover" alt="" />
-                  ) : user.avatar_url ? (
-                    <img src={user.avatar_url.startsWith("http") ? user.avatar_url : supabase.storage.from("documents").getPublicUrl(user.avatar_url).data.publicUrl} className="w-full h-full object-cover" alt="" />
                   ) : (
-                    user.full_name.charAt(0)
+                    <Avatar url={user.avatar_url} name={user.full_name} className="w-full h-full text-2xl" />
                   )}
                 </div>
                 <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center glow-primary">
