@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("New user created in Auth:", newUser.id);
     }
     
-    return {};
+    return { user: data.user, session: data.session };
   }, [fetchProfile]);
 
   const logout = useCallback(async () => {

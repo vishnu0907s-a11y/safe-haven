@@ -75,97 +75,119 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // 1. Lenient Document Validation
-    let verificationStatus: "verified" | "pending" | "rejected" = selectedRole === "admin" ? "verified" : "pending";
-    
-    if (selectedRole !== "admin") {
-      let docToValidate: File | null = null;
-      let docType: "aadhaar" | "license" | "police_id" = "aadhaar";
-
-      if (selectedRole === "women" || selectedRole === "protector") {
-        docToValidate = aadhaarFile;
-        docType = "aadhaar";
-      } else if (selectedRole === "driver") {
-        docToValidate = licenseFile || aadhaarFile;
-        docType = licenseFile ? "license" : "aadhaar";
-      } else if (selectedRole === "police") {
-        docToValidate = aadhaarFile;
-        docType = "police_id";
-      }
-
-      if (docToValidate) {
-        toast({ title: t("verifyingDocs"), description: t("loading") });
-        const validation = await validateDocument(docToValidate, selectedRole, docType);
-        
-        // Even if validation status is pending, we proceed (isValid is now always true)
-        verificationStatus = validation.status === 'verified' ? "verified" : "pending";
-        
-        toast({ 
-          title: t("done"), 
-          description: t(validation.message as any)
-        });
-      }
-    }
-
-    const metadata: Record<string, string> = { 
-      full_name: fullName,
-      verification_status: verificationStatus 
-    };
-    if (phone) metadata.phone = phone;
-    if (city) metadata.city = city;
-    if (dob) metadata.date_of_birth = dob;
-    if (vehicleNumber) metadata.vehicle_number = vehicleNumber;
-    if (stationName) metadata.station_name = stationName;
-    if (policeId) metadata.police_id = policeId;
-    if (address) metadata.address = address;
-
-    const result = await register(email, password, selectedRole, metadata);
-    if (result.error) {
-      console.error("Supabase Registration Error:", result.error);
-      // Better error message for common issues
-      let errorMessage = result.error;
-      if (result.error.includes("already registered")) {
-        errorMessage = "This email is already registered. Please try logging in.";
-      } else if (result.error.includes("Email rate limit")) {
-        errorMessage = "Too many requests. Please try again later.";
-      }
+    try {
+      // 1. Lenient Document Validation
+      let verificationStatus: "verified" | "pending" | "rejected" = selectedRole === "admin" ? "verified" : "pending";
       
-      toast({ title: t("registrationFailed"), description: errorMessage, variant: "destructive" });
-      setLoading(false);
-      return;
-    }
+      if (selectedRole !== "admin") {
+        let docToValidate: File | null = null;
+        let docType: "aadhaar" | "license" | "police_id" = "aadhaar";
 
-    // 2. Handle Document Uploads separately after successful auth registration
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      try {
-        const updates: Record<string, any> = {};
-        if (aadhaarFile) {
-          const path = await uploadDoc(aadhaarFile, user.id, "aadhaar");
-          updates.aadhaar_url = path;
+        if (selectedRole === "women" || selectedRole === "protector") {
+          docToValidate = aadhaarFile;
+          docType = "aadhaar";
+        } else if (selectedRole === "driver") {
+          docToValidate = licenseFile || aadhaarFile;
+          docType = licenseFile ? "license" : "aadhaar";
+        } else if (selectedRole === "police") {
+          docToValidate = aadhaarFile;
+          docType = "police_id";
         }
-        if (licenseFile) {
-          const path = await uploadDoc(licenseFile, user.id, "license");
-          updates.driving_license_url = path;
+
+        if (docToValidate) {
+          toast({ title: t("verifyingDocs"), description: t("loading") });
+          const validation = await validateDocument(docToValidate, selectedRole, docType);
+          
+          // Even if validation status is pending, we proceed (isValid is now always true)
+          verificationStatus = validation.status === 'verified' ? "verified" : "pending";
+          
+          toast({ 
+            title: t("done"), 
+            description: t(validation.message as any)
+          });
+        }
+      }
+
+      const metadata: Record<string, string> = { 
+        full_name: fullName,
+        verification_status: verificationStatus 
+      };
+      if (phone) metadata.phone = phone;
+      if (city) metadata.city = city;
+      if (dob) metadata.date_of_birth = dob;
+      if (vehicleNumber) metadata.vehicle_number = vehicleNumber;
+      if (stationName) metadata.station_name = stationName;
+      if (policeId) metadata.police_id = policeId;
+      if (address) metadata.address = address;
+
+      const result = await register(email, password, selectedRole, metadata);
+      if (result.error) {
+        console.error("Supabase Registration Error:", result.error);
+        // Better error message for common issues
+        let errorMessage = result.error;
+        if (result.error.includes("already registered")) {
+          errorMessage = "This email is already registered. Please try logging in.";
+        } else if (result.error.includes("Email rate limit")) {
+          errorMessage = "Too many requests. Please try again later.";
         }
         
-        if (Object.keys(updates).length > 0) {
-          await supabase.from("profiles").update(updates).eq("user_id", user.id);
-        }
-      } catch (err) {
-        console.error("Doc upload error:", err);
-        toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });
+        toast({ title: t("registrationFailed"), description: errorMessage, variant: "destructive" });
+        return;
       }
-    }
 
-    toast({ 
-      title: t("accountCreated"), 
-      description: verificationStatus === "verified" ? t("welcomeTo") + " " + t("appName") : t("docsPending") 
-    });
-    
-    setLoading(false);
-    // Always navigate to dashboard after successful registration
-    navigate("/dashboard");
+      // 2. Handle Document Uploads separately after successful auth registration
+      const registeredUser = (result as any).user;
+      const session = (result as any).session;
+      
+      if (registeredUser) {
+        try {
+          const updates: Record<string, any> = {};
+          if (aadhaarFile) {
+            const path = await uploadDoc(aadhaarFile, registeredUser.id, "aadhaar");
+            updates.aadhaar_url = path;
+          }
+          if (licenseFile) {
+            const path = await uploadDoc(licenseFile, registeredUser.id, "license");
+            updates.driving_license_url = path;
+          }
+          
+          if (Object.keys(updates).length > 0) {
+            await supabase.from("profiles").update(updates).eq("user_id", registeredUser.id);
+          }
+        } catch (err) {
+          console.error("Doc upload error:", err);
+          toast({ title: t("docUploadFailed"), description: t("uploadLater"), variant: "destructive" });
+        }
+      }
+
+      toast({ 
+        title: t("accountCreated"), 
+        description: verificationStatus === "verified" ? t("welcomeTo") + " " + t("appName") : t("docsPending") 
+      });
+      
+      // 3. Navigation based on session status
+      if (session) {
+        console.log("Session established, navigating to dashboard");
+        navigate("/dashboard");
+      } else {
+        // If session is null, it likely means email confirmation is required
+        console.log("No session after registration, likely needs email confirmation");
+        toast({
+          title: "Confirmation Email Sent",
+          description: "Please check your email and confirm your account before logging in.",
+        });
+        setStep("login");
+      }
+    } catch (error: any) {
+      console.error("Registration flow error:", error);
+      toast({
+        title: "Unexpected Error",
+        description: "Something went wrong during registration. Please try again or contact support.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const roleFields = () => {
