@@ -79,27 +79,35 @@ export function useEmergencyContacts() {
     }
 
     // 2. Sequential Opener (Fallback)
-    // Browsers block multiple window.open calls. We'll use a small delay and 
-    // try to open each contact. Note: User might need to allow popups.
     contacts.forEach((contact, index) => {
       setTimeout(() => {
         const phone = contact.phone.replace(/[^0-9+]/g, "");
-        // Use api.whatsapp.com for better cross-platform support
         const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodedMessage}`;
-        
-        // Open in a new tab/app
-        const win = window.open(whatsappUrl, "_blank");
-        if (!win && index === 0) {
-          // If even the first one fails, try a direct navigation as a last resort
-          window.location.href = whatsappUrl;
-        }
-      }, index * 1000); // 1s delay to try and bypass simple popup blockers
+        window.open(whatsappUrl, "_blank");
+      }, index * 800); // Slightly faster
     });
 
-    if (contacts.length > 1) {
-      toast.info("Opening emergency chats... Please click send in each.", { duration: 5000 });
-    }
+    toast.info("Opening chats... Click send in each.", { duration: 4000 });
   }, [contacts]);
 
-  return { contacts, loading, addContact, removeContact, sendWhatsAppAlerts };
+  // SMS alert — This IS the only way to "Automatically Select" multiple people at once
+  const sendSMSAlerts = useCallback((latitude: number, longitude: number) => {
+    if (contacts.length === 0) return;
+    
+    const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    const messageText = `EMERGENCY SOS ALERT! I need help immediately! My location: ${mapsUrl}`;
+    
+    // Join all phones for the multi-recipient SMS scheme
+    const phones = contacts.map(c => c.phone.replace(/[^0-9+]/g, "")).join(",");
+    
+    // Different schemes for iOS/Android
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const smsUrl = isIOS 
+      ? `sms:${phones}&body=${encodeURIComponent(messageText)}`
+      : `sms:${phones}?body=${encodeURIComponent(messageText)}`;
+      
+    window.location.href = smsUrl;
+  }, [contacts]);
+
+  return { contacts, loading, addContact, removeContact, sendWhatsAppAlerts, sendSMSAlerts };
 }
